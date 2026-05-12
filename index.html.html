@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alarm Code Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@200;300;400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #16161a;
+  --surface: #1f1f27;
+  --surface2: #28282f;
+  --surface3: #2e2e38;
+  --border: #35353f;
+  --border-bright: #48485a;
+  --text-primary: #f2f1f8;
+  --text-secondary: #b8b6d0;
+  --text-muted: #7a7890;
+  --text-greek: #cac8e2;
+  --accent: #a394ff;
+  --accent-dim: rgba(163,148,255,0.14);
+  --accent-glow: rgba(163,148,255,0.3);
+  --success: #5debb0;
+  --success-dim: rgba(93,235,176,0.12);
+  --warn: #ffb366;
+  --warn-dim: rgba(255,179,102,0.12);
+  --red: #ff7474;
+  --red-dim: rgba(255,116,116,0.12);
+  --blue: #85c0ff;
+  --blue-dim: rgba(133,192,255,0.12);
+}
+html { height: 100%; }
+body {
+  background: var(--bg); color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif; font-weight: 400;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 32px 24px 64px;
+  position: relative; overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; top: -40%; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124,106,247,0.06) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+.container { width: 100%; max-width: 1080px; position: relative; z-index: 1; }
+
+/* ── Header ── */
+.header {
+  margin-bottom: 36px; text-align: center;
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+}
+.logo-mark { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; }
+.logo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+.logo-line { width: 24px; height: 1px; background: var(--border-bright); }
+h1 {
+  font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 400;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;
+}
+.subtitle { font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+/* ── Mode tabs ── */
+.mode-tabs {
+  display: flex; gap: 4px; margin-bottom: 28px; justify-content: center;
+  opacity: 0; animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.18s forwards;
+}
+.mode-tab {
+  font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 8px 22px; border-radius: 10px;
+  border: 1px solid var(--border); color: var(--text-muted);
+  cursor: pointer; transition: all 0.18s; user-select: none;
+}
+.mode-tab:hover { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface2); }
+.mode-tab.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── LOOKUP PANEL ── */
+.lookup-wrap { max-width: 580px; margin: 0 auto; }
+.search-wrap {
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.26s forwards;
+}
+.input-label {
+  display: block; font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
+.input-row { display: flex; gap: 10px; align-items: stretch; }
+.input-field {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0 20px; height: 58px; font-family: 'DM Mono', monospace; font-size: 24px;
+  font-weight: 500; color: var(--text-primary); letter-spacing: 0.14em; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; appearance: none;
+}
+.input-field::placeholder { color: var(--text-muted); font-size: 16px; letter-spacing: 0.06em; font-weight: 400; }
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.input-field::-webkit-inner-spin-button, .input-field::-webkit-outer-spin-button { -webkit-appearance: none; }
+.clear-btn {
+  display: none; align-items: center; justify-content: center;
+  width: 58px; height: 58px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.18s;
+  font-size: 20px; line-height: 1; flex-shrink: 0;
+}
+.clear-btn:hover { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface); }
+.clear-btn.visible { display: flex; }
+.controls-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+.badge {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 7px; border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: all 0.16s; user-select: none;
+}
+.badge:hover { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface2); }
+.badge.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.controls-sep { width: 1px; height: 18px; background: var(--border-bright); margin: 0 4px; }
+.lang-badge.active { border-color: var(--success); color: var(--success); background: var(--success-dim); }
+
+/* ── Result card ── */
+.result-wrap {
+  margin-top: 28px; opacity: 0; transform: translateY(10px);
+  transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1), transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.result-wrap.visible { opacity: 1; transform: translateY(0); }
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color 0.25s; }
+.result-card.found { border-color: var(--border-bright); }
+.result-top {
+  padding: 22px 26px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  background: var(--surface2);
+}
+.result-code-block { display: flex; flex-direction: column; gap: 5px; }
+.result-code-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+.result-code-val { font-family: 'DM Mono', monospace; font-size: 34px; font-weight: 500; letter-spacing: 0.08em; color: var(--accent); line-height: 1; }
+.result-proto-tag {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 20px; border: 1px solid; flex-shrink: 0; margin-top: 4px;
+}
+.tag-cid { border-color: rgba(163,148,255,0.4); color: var(--accent); background: var(--accent-dim); }
+.tag-sia { border-color: rgba(93,235,176,0.4); color: var(--success); background: var(--success-dim); }
+.result-body { padding: 24px 26px 28px; }
+.result-title { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; line-height: 1.3; letter-spacing: -0.01em; }
+.result-desc { font-size: 15px; line-height: 1.8; color: var(--text-secondary); font-weight: 400; }
+.result-desc-el {
+  font-size: 14px; line-height: 1.8; color: var(--text-greek); font-weight: 400;
+  margin-top: 14px; padding: 12px 16px;
+  background: rgba(163,148,255,0.07); border-left: 3px solid rgba(163,148,255,0.4);
+  border-radius: 0 8px 8px 0; display: none;
+}
+.result-desc-el.show { display: block; }
+.greek-label {
+  display: block; font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; opacity: 0.8;
+}
+.result-meta { display: flex; gap: 24px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.meta-item { display: flex; flex-direction: column; gap: 4px; }
+.meta-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.meta-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-secondary); letter-spacing: 0.04em; }
+.cat-fire .result-code-val { color: var(--warn); }
+.cat-fire .result-desc-el { border-left-color: rgba(255,179,102,0.5); background: rgba(255,179,102,0.06); }
+.cat-burg .result-code-val { color: var(--red); }
+.cat-burg .result-desc-el { border-left-color: rgba(255,116,116,0.5); background: rgba(255,116,116,0.06); }
+.cat-open .result-code-val { color: var(--success); }
+.cat-open .result-desc-el { border-left-color: rgba(93,235,176,0.5); background: rgba(93,235,176,0.06); }
+.cat-system .result-code-val { color: var(--blue); }
+.cat-system .result-desc-el { border-left-color: rgba(133,192,255,0.5); background: rgba(133,192,255,0.06); }
+.not-found-inner { padding: 36px 26px; text-align: center; }
+.not-found-code { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px; }
+.not-found-msg { font-size: 15px; color: var(--text-secondary); }
+
+/* ── BROWSE PANEL ── */
+.browse-toolbar {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 18px;
+}
+.browse-search-wrap { position: relative; flex: 1; min-width: 220px; }
+.browse-search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 14px; pointer-events: none; font-family: 'DM Mono', monospace;
+}
+.browse-search {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 0 14px 0 38px; height: 42px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text-primary); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.browse-search::placeholder { color: var(--text-muted); }
+.browse-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+.cat-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.cat-chip {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: all 0.16s; user-select: none; white-space: nowrap;
+}
+.cat-chip:hover { border-color: var(--border-bright); color: var(--text-secondary); }
+.cat-chip.active { font-weight: 500; }
+.cat-chip[data-cat="All"].active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.cat-chip[data-cat="Fire"].active { border-color: rgba(255,179,102,0.6); color: var(--warn); background: var(--warn-dim); }
+.cat-chip[data-cat="Burglary"].active { border-color: rgba(255,116,116,0.6); color: var(--red); background: var(--red-dim); }
+.cat-chip[data-cat="Panic"].active { border-color: rgba(255,116,116,0.6); color: var(--red); background: var(--red-dim); }
+.cat-chip[data-cat="Open/Close"].active { border-color: rgba(93,235,176,0.6); color: var(--success); background: var(--success-dim); }
+.cat-chip[data-cat="Access"].active { border-color: rgba(133,192,255,0.6); color: var(--blue); background: var(--blue-dim); }
+.cat-chip[data-cat="System"].active { border-color: rgba(133,192,255,0.6); color: var(--blue); background: var(--blue-dim); }
+.cat-chip[data-cat="Medical"].active { border-color: rgba(255,179,102,0.6); color: var(--warn); background: var(--warn-dim); }
+.cat-chip[data-cat="General"].active { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface3); }
+.cat-chip[data-cat="Bypass"].active { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface3); }
+.cat-chip[data-cat="Test"].active { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface3); }
+
+/* Proto filter */
+.proto-filters { display: flex; gap: 6px; }
+.proto-chip {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: all 0.16s; user-select: none;
+}
+.proto-chip:hover { border-color: var(--border-bright); color: var(--text-secondary); }
+.proto-chip[data-proto="all"].active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.proto-chip[data-proto="cid"].active { border-color: rgba(163,148,255,0.6); color: var(--accent); background: var(--accent-dim); }
+.proto-chip[data-proto="sia"].active { border-color: rgba(93,235,176,0.6); color: var(--success); background: var(--success-dim); }
+
+.browse-stats {
+  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted);
+  letter-spacing: 0.06em; margin-bottom: 14px;
+}
+.browse-stats span { color: var(--text-secondary); }
+
+/* Table */
+.table-wrap {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--surface2); border-bottom: 1px solid var(--border); }
+th {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); font-weight: 400;
+  padding: 14px 16px; text-align: left; white-space: nowrap;
+  cursor: pointer; user-select: none; transition: color 0.15s;
+  position: relative;
+}
+th:hover { color: var(--text-secondary); }
+th.sorted { color: var(--accent); }
+th .sort-arrow { display: inline-block; margin-left: 5px; opacity: 0.4; font-size: 9px; }
+th.sorted .sort-arrow { opacity: 1; }
+
+tbody tr {
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background 0.12s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr.row-highlight { background: rgba(163,148,255,0.06); }
+
+td { padding: 13px 16px; vertical-align: middle; }
+.td-code {
+  font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+  letter-spacing: 0.1em; white-space: nowrap;
+}
+.td-code.cid-code { color: var(--accent); }
+.td-code.sia-code { color: var(--success); }
+.td-title { font-size: 13px; font-weight: 400; color: var(--text-primary); white-space: nowrap; }
+.td-desc { font-size: 12px; color: var(--text-muted); max-width: 340px; line-height: 1.5; }
+.td-desc mark { background: rgba(163,148,255,0.25); color: var(--text-primary); border-radius: 3px; padding: 0 2px; }
+.td-proto { white-space: nowrap; }
+.proto-pill {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 20px; border: 1px solid;
+}
+.proto-pill.cid { border-color: rgba(163,148,255,0.4); color: var(--accent); background: var(--accent-dim); }
+.proto-pill.sia { border-color: rgba(93,235,176,0.4); color: var(--success); background: var(--success-dim); }
+
+.cat-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 7px; vertical-align: middle; flex-shrink: 0;
+}
+.td-cat { font-size: 12px; color: var(--text-secondary); white-space: nowrap; display: flex; align-items: center; }
+
+/* Category dot colors */
+.dot-fire { background: var(--warn); }
+.dot-burg { background: var(--red); }
+.dot-open { background: var(--success); }
+.dot-system { background: var(--blue); }
+.dot-panic { background: var(--red); }
+.dot-access { background: var(--blue); }
+.dot-medical { background: var(--warn); }
+.dot-general { background: var(--border-bright); }
+.dot-bypass { background: var(--border-bright); }
+.dot-test { background: var(--border-bright); }
+
+/* Empty state */
+.empty-state {
+  padding: 60px 24px; text-align: center;
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+.empty-msg { font-size: 14px; color: var(--text-muted); }
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.page-info { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; }
+.page-btns { display: flex; gap: 6px; }
+.page-btn {
+  font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em;
+  padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s; background: none;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--border-bright); color: var(--text-secondary); background: var(--surface3); }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
+.page-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Footer ── */
+.divider {
+  height: 1px; background: linear-gradient(to right, transparent, var(--border-bright), transparent);
+  margin: 40px 0 32px; opacity: 0; animation: fadeIn 0.5s ease 0.5s forwards;
+}
+.footer { text-align: center; opacity: 0; animation: fadeIn 0.5s ease 0.6s forwards; }
+.footer-text { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.footer-name { color: var(--text-secondary); }
+
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { to { opacity: 1; } }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+
+/* ── Password Gate ── */
+#pw-gate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+#pw-gate::before {
+  content: ''; position: absolute; top: -40%; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124,106,247,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pw-box {
+  width: 100%; max-width: 380px; padding: 0 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+}
+.pw-logo { display: flex; align-items: center; gap: 7px; margin-bottom: 28px; }
+.pw-logo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+.pw-logo-line { width: 24px; height: 1px; background: var(--border-bright); }
+.pw-title {
+  font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 400;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-secondary);
+  margin-bottom: 6px; text-align: center;
+}
+.pw-sub {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+  color: var(--text-muted); margin-bottom: 32px; text-align: center;
+}
+.pw-input-wrap { width: 100%; position: relative; margin-bottom: 12px; }
+#pw-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0 48px 0 20px; height: 54px;
+  font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 400;
+  color: var(--text-primary); letter-spacing: 0.08em; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#pw-input::placeholder { color: var(--text-muted); font-size: 13px; letter-spacing: 0.04em; }
+#pw-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+#pw-input.error { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-dim); animation: shake 0.35s ease; }
+#pw-toggle {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--text-muted);
+  font-size: 15px; padding: 4px; transition: color 0.15s; line-height: 1;
+}
+#pw-toggle:hover { color: var(--text-secondary); }
+#pw-btn {
+  width: 100%; height: 54px; background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: 12px; font-family: 'DM Mono', monospace; font-size: 11px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent);
+  cursor: pointer; transition: all 0.18s; margin-bottom: 14px;
+}
+#pw-btn:hover { background: rgba(163,148,255,0.22); box-shadow: 0 0 18px rgba(163,148,255,0.15); }
+#pw-btn:active { transform: scale(0.98); }
+#pw-error {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--red); opacity: 0;
+  transition: opacity 0.2s; text-align: center;
+}
+#pw-error.show { opacity: 1; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Password Gate ── -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-logo">
+      <div class="pw-logo-line"></div>
+      <div class="pw-logo-dot"></div>
+      <div class="pw-logo-line"></div>
+    </div>
+    <div class="pw-title">Alarm Code Lookup</div>
+    <div class="pw-sub">Enter password to continue</div>
+    <div class="pw-input-wrap">
+      <input id="pw-input" type="password" placeholder="Password" autocomplete="current-password" spellcheck="false" />
+      <button id="pw-toggle" title="Show/hide password" tabindex="-1">👁</button>
+    </div>
+    <button id="pw-btn">Unlock</button>
+    <div id="pw-error">Incorrect password</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-mark">
+      <div class="logo-line"></div>
+      <div class="logo-dot"></div>
+      <div class="logo-line"></div>
+    </div>
+    <h1>Alarm Code Lookup</h1>
+    <div class="subtitle">Contact ID · SIA DC-09</div>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" data-mode="lookup">⌕ &nbsp;Lookup</div>
+    <div class="mode-tab" data-mode="browse">⊞ &nbsp;Browse All</div>
+  </div>
+
+  <!-- LOOKUP PANEL -->
+  <div class="panel active" id="panel-lookup">
+    <div class="lookup-wrap">
+      <div class="search-wrap">
+        <label class="input-label" for="codeInput">Enter code</label>
+        <div class="input-row">
+          <input id="codeInput" class="input-field" type="text" placeholder="e.g. 130 or BA"
+            autocomplete="off" spellcheck="false" maxlength="4"/>
+          <button class="clear-btn" id="clearBtn" title="Clear">×</button>
+        </div>
+        <div class="controls-row">
+          <span class="badge active" data-proto="both">All</span>
+          <span class="badge" data-proto="cid">Contact ID</span>
+          <span class="badge" data-proto="sia">SIA</span>
+          <div class="controls-sep"></div>
+          <span class="badge lang-badge active" data-lang="both">EN + ΕΛ</span>
+          <span class="badge lang-badge" data-lang="en">EN</span>
+          <span class="badge lang-badge" data-lang="el">ΕΛ</span>
+        </div>
+      </div>
+      <div class="result-wrap" id="resultWrap">
+        <div class="result-card" id="resultCard">
+          <div id="resultInner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSE PANEL -->
+  <div class="panel" id="panel-browse">
+    <div class="browse-toolbar">
+      <div class="browse-search-wrap">
+        <span class="browse-search-icon">⌕</span>
+        <input class="browse-search" id="browseSearch" type="text"
+          placeholder="Search codes, titles, descriptions…" autocomplete="off" spellcheck="false"/>
+      </div>
+    </div>
+    <div class="browse-toolbar" style="margin-bottom:14px; gap:8px;">
+      <div class="proto-filters">
+        <div class="proto-chip active" data-proto="all">All</div>
+        <div class="proto-chip" data-proto="cid">Contact ID</div>
+        <div class="proto-chip" data-proto="sia">SIA</div>
+      </div>
+      <div style="width:1px;height:22px;background:var(--border-bright);margin:0 2px;"></div>
+      <div class="cat-filters" id="catFilters">
+        <div class="cat-chip active" data-cat="All">All</div>
+        <div class="cat-chip" data-cat="Fire">Fire</div>
+        <div class="cat-chip" data-cat="Burglary">Burglary</div>
+        <div class="cat-chip" data-cat="Panic">Panic</div>
+        <div class="cat-chip" data-cat="Open/Close">Open/Close</div>
+        <div class="cat-chip" data-cat="Access">Access</div>
+        <div class="cat-chip" data-cat="System">System</div>
+        <div class="cat-chip" data-cat="Medical">Medical</div>
+        <div class="cat-chip" data-cat="General">General</div>
+        <div class="cat-chip" data-cat="Bypass">Bypass</div>
+        <div class="cat-chip" data-cat="Test">Test</div>
+      </div>
+    </div>
+    <div class="browse-stats" id="browseStats"></div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="browseTable">
+          <thead>
+            <tr>
+              <th data-col="code">Code <span class="sort-arrow">↕</span></th>
+              <th data-col="title">Title <span class="sort-arrow">↕</span></th>
+              <th data-col="desc">Description <span class="sort-arrow">↕</span></th>
+              <th data-col="proto">Protocol <span class="sort-arrow">↕</span></th>
+              <th data-col="cat">Category <span class="sort-arrow">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="browseBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination">
+        <div class="page-info" id="pageInfo"></div>
+        <div class="page-btns" id="pageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="footer">
+    <div class="footer-text">Contact ID rev. 2012 · SIA DC-09 &nbsp;·&nbsp; <span class="footer-name">Karman Singh</span></div>
+  </div>
+</div>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────────
+const CID = {
+  100:["Medical Zone","A non-specific medical condition exists","Υπάρχει μη εξειδικευμένη ιατρική κατάσταση","Medical"],
+  101:["Personal Emergency","Emergency assistance request","Αίτημα έκτακτης βοήθειας","Medical"],
+  102:["Fail to Report In","A user has failed to activate a monitoring device","Ο χρήστης δεν ενεργοποίησε τη συσκευή παρακολούθησης","Medical"],
+  110:["Fire","A non-specific fire alarm condition exists","Υπάρχει μη εξειδικευμένη κατάσταση πυρανίχνευσης","Fire"],
+  111:["Smoke","An alarm has been triggered by a smoke detector","Συναγερμός από ανιχνευτή καπνού","Fire"],
+  112:["Combustion","An alarm has been triggered by a combustion detector","Συναγερμός από ανιχνευτή καύσης","Fire"],
+  113:["Water Flow","An alarm has been triggered by a water flow detector","Συναγερμός από ανιχνευτή ροής νερού","Fire"],
+  114:["Heat","An alarm has been triggered by a heat detector","Συναγερμός από ανιχνευτή θερμότητας","Fire"],
+  115:["Pull Station","A pull station has been activated","Ενεργοποιήθηκε χειροκίνητος σταθμός πυρός","Fire"],
+  116:["Duct","An alarm has been triggered by a duct detector","Συναγερμός από ανιχνευτή αεραγωγού","Fire"],
+  117:["Flame","An alarm has been triggered by a flame detector","Συναγερμός από ανιχνευτή φλόγας","Fire"],
+  118:["Near Alarm (Fire)","A near-alarm condition has been detected on a fire sensor","Ανιχνεύθηκε κατάσταση σχεδόν-συναγερμού σε αισθητήρα πυρός","Fire"],
+  120:["Panic","A non-specific hold-up alarm exists","Υπάρχει μη εξειδικευμένος συναγερμός ληστείας","Panic"],
+  121:["Duress","A duress code has been entered by a user","Εισήχθη κωδικός εξαναγκασμού από χρήστη","Panic"],
+  122:["Silent Hold-Up","A silent hold-up alarm exists","Υπάρχει αθόρυβος συναγερμός ληστείας","Panic"],
+  123:["Audible Hold-Up","An audible hold-up alarm exists","Υπάρχει ηχητικός συναγερμός ληστείας","Panic"],
+  124:["Duress – Access Granted","A duress code has been entered and granted at an entry door","Κωδικός εξαναγκασμού εισήχθη και εγκρίθηκε σε πόρτα εισόδου","Panic"],
+  125:["Duress – Egress Granted","A duress code has been entered and granted at an exit door","Κωδικός εξαναγκασμού εισήχθη και εγκρίθηκε σε πόρτα εξόδου","Panic"],
+  126:["Hold-Up Suspicion","A user has activated a trigger to indicate a suspicious condition","Ο χρήστης ενεργοποίησε σήμα ύποπτης κατάστασης","Panic"],
+  130:["Burglary","A burglary zone has been violated while armed","Παραβιάστηκε ζώνη διάρρηξης ενώ το σύστημα ήταν ενεργοποιημένο","Burglary"],
+  131:["Perimeter","A perimeter zone has been violated while armed","Παραβιάστηκε ζώνη περιμέτρου ενώ το σύστημα ήταν ενεργοποιημένο","Burglary"],
+  132:["Interior","An interior zone has been violated while armed","Παραβιάστηκε εσωτερική ζώνη ενώ το σύστημα ήταν ενεργοποιημένο","Burglary"],
+  133:["24 Hour (Safe)","A 24-hour burglary zone has been violated","Παραβιάστηκε ζώνη διάρρηξης 24ωρης επιτήρησης","Burglary"],
+  134:["Entry/Exit","An entry/exit zone has been violated while armed","Παραβιάστηκε ζώνη εισόδου/εξόδου ενώ το σύστημα ήταν ενεργοποιημένο","Burglary"],
+  135:["Day/Night","A trouble-by-day / alarm-by-night zone has been violated while armed","Παραβιάστηκε ζώνη ημέρας/νύχτας ενώ το σύστημα ήταν ενεργοποιημένο","Burglary"],
+  136:["Outdoor","An outdoor burglary zone has been violated while armed","Παραβιάστηκε εξωτερική ζώνη διάρρηξης ενώ ήταν ενεργοποιημένο","Burglary"],
+  137:["Tamper (Armed)","A burglary zone has been tampered with while armed","Έγινε παρέμβαση σε ζώνη διάρρηξης ενώ ήταν ενεργοποιημένο","Burglary"],
+  138:["Near Alarm (Burg)","A burg sensor detected a condition which may escalate to alarm","Αισθητήρας ανίχνευσε κατάσταση που μπορεί να εξελιχθεί σε συναγερμό","Burglary"],
+  139:["Intrusion Verified","The specified zone has verified that an intrusion has occurred","Η ζώνη επιβεβαίωσε ότι πραγματοποιήθηκε εισβολή","Burglary"],
+  140:["General Alarm","The specified zone is in an alarm condition","Η συγκεκριμένη ζώνη βρίσκεται σε κατάσταση συναγερμού","Burglary"],
+  141:["Polling Loop Open (Armed)","An open circuit detected on a polling loop while armed","Ανοιχτό κύκλωμα ανιχνεύθηκε σε βρόχο ελέγχου ενώ ήταν ενεργοποιημένο","System"],
+  142:["Polling Loop Short (Armed)","A short circuit detected on a polling loop while armed","Βραχυκύκλωμα ανιχνεύθηκε σε βρόχο ελέγχου ενώ ήταν ενεργοποιημένο","System"],
+  143:["Expansion Module Failure (Armed)","A general failure detected on an expansion module while armed","Γενική βλάβη σε module επέκτασης ενώ ήταν ενεργοποιημένο","System"],
+  144:["Sensor Tamper","A sensor's tamper has been violated (case opened)","Παραβιάστηκε το κάλυμμα αισθητήρα (ανοίχτηκε το κέλυφος)","System"],
+  145:["Expansion Module Tamper","An expansion module's tamper has been violated (cabinet opened)","Παραβιάστηκε το module επέκτασης (ανοίχτηκε το ερμάριο)","System"],
+  146:["Silent Burglary","A burglary zone violated while armed with no audible notification","Παραβιάστηκε ζώνη διάρρηξης χωρίς ηχητική ειδοποίηση","Burglary"],
+  147:["Sensor Supervision Failure","A sensor's supervisory circuit reported a failure while armed","Βλάβη στο κύκλωμα επιτήρησης αισθητήρα ενώ ήταν ενεργοποιημένο","System"],
+  150:["24 Hour Non-Burglary","A non-burglary zone has been faulted","Βλάβη σε ζώνη μη-διάρρηξης 24ωρης επιτήρησης","General"],
+  151:["Gas Detected","A gas detector has reported a fault condition","Ανιχνευτής αερίου ανέφερε κατάσταση βλάβης","General"],
+  152:["Refrigeration","A refrigeration detector has reported a fault condition","Ανιχνευτής ψύξης ανέφερε κατάσταση βλάβης","General"],
+  153:["Loss of Heat","A temperature detector has reported a fault condition","Ανιχνευτής θερμοκρασίας ανέφερε απώλεια θερμότητας","General"],
+  154:["Water Leakage","A water leak detector has reported a fault condition","Ανιχνευτής διαρροής νερού ανέφερε βλάβη","General"],
+  155:["Foil Break","A foil glass break detection zone has reported a fault","Ζώνη ανίχνευσης θραύσης τζαμιού (με foil) ανέφερε βλάβη","General"],
+  156:["Day Trouble","A day trouble zone has reported a fault while disarmed","Ζώνη ημερήσιας βλάβης ανέφερε σφάλμα ενώ ήταν απενεργοποιημένο","General"],
+  157:["Low Bottled Gas Level","A gas level detector has reported a fault condition","Ανιχνευτής στάθμης αερίου ανέφερε χαμηλή στάθμη","General"],
+  158:["High Temp","An over-temperature detector has reported a fault condition","Ανιχνευτής υπερθέρμανσης ανέφερε βλάβη","General"],
+  159:["Low Temp","An under-temperature detector has reported a fault condition","Ανιχνευτής χαμηλής θερμοκρασίας ανέφερε βλάβη","General"],
+  161:["Loss of Air Flow","An air flow detector has reported a fault condition","Ανιχνευτής ροής αέρα ανέφερε απώλεια ροής","General"],
+  162:["Carbon Monoxide","A carbon monoxide detector has reported a fault condition","Ανιχνευτής μονοξειδίου του άνθρακα ανέφερε βλάβη","General"],
+  163:["Tank Level","A tank level detector has reported a fault condition","Ανιχνευτής στάθμης δεξαμενής ανέφερε βλάβη","General"],
+  168:["High Humidity","A high humidity condition has been detected","Ανιχνεύθηκε κατάσταση υψηλής υγρασίας","General"],
+  169:["Low Humidity","A low humidity condition has been detected","Ανιχνεύθηκε κατάσταση χαμηλής υγρασίας","General"],
+  200:["Fire Supervisory","The supervisory circuit of a fire zone has reported a fault","Το κύκλωμα επιτήρησης ζώνης πυρός ανέφερε βλάβη","Fire"],
+  201:["Low Water Pressure","A water pressure sensor has reported a fault condition","Αισθητήρας πίεσης νερού ανέφερε χαμηλή πίεση","Fire"],
+  202:["Low CO2","A CO2 pressure sensor has reported a fault condition","Αισθητήρας πίεσης CO2 ανέφερε χαμηλή πίεση","Fire"],
+  203:["Gate Valve Sensor","A gate valve sensor in the fire sprinkler system has reported a fault","Αισθητήρας βαλβίδας συστήματος καταιονισμού ανέφερε βλάβη","Fire"],
+  204:["Low Water Level","A water level sensor has reported a fault condition","Αισθητήρας στάθμης νερού ανέφερε χαμηλή στάθμη","Fire"],
+  205:["Pump Activated","A pump activity detector has reported an active condition","Ο ανιχνευτής αντλίας ανέφερε ενεργή κατάσταση","Fire"],
+  206:["Pump Failure","A pump output monitor has reported a fault condition","Το σύστημα παρακολούθησης αντλίας ανέφερε βλάβη","Fire"],
+  300:["System Trouble","A general system trouble condition has been reported","Αναφέρθηκε γενική βλάβη συστήματος","System"],
+  301:["AC Loss","AC power loss detected at a control or expansion module","Ανιχνεύθηκε απώλεια εναλλασσόμενου ρεύματος στον πίνακα","System"],
+  302:["Low System Battery","A battery has failed a load test while disarmed","Η μπαταρία απέτυχε στη δοκιμή φορτίου ενώ ήταν απενεργοποιημένο","System"],
+  303:["RAM Checksum Bad","A test of the system's memory has failed","Η δοκιμή μνήμης RAM απέτυχε","System"],
+  304:["ROM Checksum Bad","A test of the system's executable memory has failed","Η δοκιμή εκτελέσιμης μνήμης ROM απέτυχε","System"],
+  305:["System Reset","The system has reset and restarted","Το σύστημα επανεκκινήθηκε","System"],
+  306:["Panel Programming Changed","The programmed configuration of the panel has changed","Η ρύθμιση του πίνακα άλλαξε","System"],
+  307:["Self-Test Failure","The system has failed a self-test","Το σύστημα απέτυχε σε αυτοδιαγνωστικό έλεγχο","System"],
+  308:["System Shutdown","The system has been shut down and stopped functioning","Το σύστημα τέθηκε εκτός λειτουργίας","System"],
+  309:["Battery Test Failure","The system backup battery has failed a load test","Η μπαταρία εφεδρείας απέτυχε σε δοκιμή φορτίου","System"],
+  310:["Ground Fault","The panel has detected a ground fault condition","Ο πίνακας ανίχνευσε σφάλμα γείωσης","System"],
+  311:["Battery Missing/Dead","The backup battery is either missing or completely discharged","Η εφεδρική μπαταρία λείπει ή είναι εντελώς αποφορτισμένη","System"],
+  312:["Power Supply Overcurrent","The system power supply has reported an excessive current draw","Το τροφοδοτικό ανέφερε υπερβολικό ρεύμα","System"],
+  313:["Engineer Reset","A service person has issued a system reset","Ο τεχνικός εξέδωσε εντολή επαναφοράς συστήματος","System"],
+  314:["Primary Power Supply Failure","The system's primary power supply has failed a supervision test","Η κύρια τροφοδοσία απέτυχε σε έλεγχο επιτήρησης","System"],
+  316:["System Tamper","System may have been tampered or compromised","Ενδέχεται να έγινε παρέμβαση στο σύστημα","System"],
+  320:["Sounder/Relay Trouble","A trouble condition exists in the sounder/relay circuit","Βλάβη στο κύκλωμα σειρήνας/ρελέ","System"],
+  321:["Bell 1 Trouble","A trouble condition exists in the primary bell circuit","Βλάβη στο κύκλωμα κύριας σειρήνας","System"],
+  322:["Bell 2 Trouble","A trouble condition exists in the secondary bell circuit","Βλάβη στο κύκλωμα δευτερεύουσας σειρήνας","System"],
+  323:["Alarm Relay Trouble","A trouble condition exists in the system alarm relay circuit","Βλάβη στο κύκλωμα ρελέ συναγερμού","System"],
+  324:["Trouble Relay","A trouble condition exists in the system trouble relay circuit","Βλάβη στο κύκλωμα ρελέ βλάβης","System"],
+  325:["Reversing Relay","The TELCO reversing relay has reported a trouble condition","Το ρελέ αντιστροφής TELCO ανέφερε βλάβη","System"],
+  326:["Notification Appliance #3","A trouble condition exists in the bell #3 circuit","Βλάβη στο κύκλωμα σειρήνας #3","System"],
+  327:["Notification Appliance #4","A trouble condition exists in the bell #4 circuit","Βλάβη στο κύκλωμα σειρήνας #4","System"],
+  330:["System Peripheral Trouble","A system peripheral device has reported a trouble condition","Περιφερειακή συσκευή ανέφερε βλάβη","System"],
+  331:["Polling Loop Open (Disarmed)","An open circuit detected on a polling loop while disarmed","Ανοιχτό κύκλωμα σε βρόχο ελέγχου ενώ ήταν απενεργοποιημένο","System"],
+  332:["Polling Loop Short (Disarmed)","A short circuit detected on a polling loop while disarmed","Βραχυκύκλωμα σε βρόχο ελέγχου ενώ ήταν απενεργοποιημένο","System"],
+  333:["Expansion Module Failure (Disarmed)","A general failure on an expansion module while disarmed","Γενική βλάβη σε module επέκτασης ενώ ήταν απενεργοποιημένο","System"],
+  334:["Repeater Failure","A repeater has reported a failure condition while disarmed","Αναμεταδότης ανέφερε βλάβη ενώ ήταν απενεργοποιημένο","System"],
+  335:["Local Printer Out of Paper","The printer attached to the panel has reported Out Of Paper","Ο εκτυπωτής ανέφερε έλλειψη χαρτιού","System"],
+  336:["Local Printer Failure","The printer attached to the panel has reported a failure","Ο εκτυπωτής ανέφερε βλάβη","System"],
+  337:["Exp. Module DC Loss","An expansion module has detected a DC power loss","Module επέκτασης ανίχνευσε απώλεια DC τροφοδοσίας","System"],
+  338:["Exp. Module Low Battery","An expansion module has detected a low battery condition","Module επέκτασης ανίχνευσε χαμηλή μπαταρία","System"],
+  339:["Exp. Module Reset","An expansion module has reset","Module επέκτασης επανεκκινήθηκε","System"],
+  341:["Exp. Module Tamper","An expansion module tamper switch has been faulted","Παραβιάστηκε ο διακόπτης tamper module επέκτασης","System"],
+  342:["Exp. Module AC Loss","An expansion module has detected loss of AC power","Module επέκτασης ανίχνευσε απώλεια εναλλασσόμενου ρεύματος","System"],
+  343:["Exp. Module Self-Test Fail","An expansion module has failed a self-test","Module επέκτασης απέτυχε σε αυτοδιαγνωστικό έλεγχο","System"],
+  344:["RF Receiver Jam Detect","An RF receiver has detected the presence of a jamming signal","Δέκτης RF ανίχνευσε σήμα παρεμβολής","System"],
+  345:["AES Encryption","AES Encryption has been disabled or enabled","Η κρυπτογράφηση AES απενεργοποιήθηκε ή ενεργοποιήθηκε","System"],
+  350:["Communication Trouble","Difficulties communicating with the central station","Δυσκολίες επικοινωνίας με το κέντρο λήψης σημάτων","System"],
+  351:["Telco 1 Fault","A fault has been detected on the primary dial-up line","Βλάβη ανιχνεύθηκε στην κύρια τηλεφωνική γραμμή","System"],
+  352:["Telco 2 Fault","A fault has been detected on the secondary dial-up line","Βλάβη ανιχνεύθηκε στη δευτερεύουσα τηλεφωνική γραμμή","System"],
+  353:["Long Range Radio Fault","A fault has been detected in the long range radio subsystem","Βλάβη στο υποσύστημα ραδιοεπικοινωνίας μεγάλης εμβέλειας","System"],
+  354:["Failure to Communicate","The system was unable to communicate an event to the central station","Το σύστημα δεν κατάφερε να επικοινωνήσει συμβάν στο κέντρο","System"],
+  355:["Loss of Radio Supervision","The radio has not reported in its designated supervision interval","Το ράδιο δεν ανέφερε εντός του καθορισμένου διαστήματος επιτήρησης","System"],
+  356:["Loss of Central Polling","The radio has detected a loss in the polling signal from its receiver","Ανιχνεύθηκε απώλεια σήματος polling από τον δέκτη","System"],
+  357:["Long Range Radio VSWR","The Long Range Radio has reported a transmitter/antenna problem","Ο ραδιοπομπός ανέφερε πρόβλημα κεραίας/πομπού","System"],
+  358:["Periodic Comm Test Fail","A periodic communication path test has failed","Αποτυχία περιοδικής δοκιμής επικοινωνίας","System"],
+  370:["Protection Loop Trouble","The protection loop has reported a trouble condition","Ο βρόχος προστασίας ανέφερε βλάβη","System"],
+  371:["Protection Loop Open","The protection loop has reported an open-loop trouble","Ο βρόχος προστασίας ανέφερε ανοιχτό κύκλωμα","System"],
+  372:["Protection Loop Short","The protection loop has reported a shorted-loop trouble","Ο βρόχος προστασίας ανέφερε βραχυκύκλωμα","System"],
+  373:["Fire Trouble (Disarmed)","A fire sensor has detected a trouble condition while disarmed","Αισθητήρας πυρός ανίχνευσε βλάβη ενώ ήταν απενεργοποιημένο","Fire"],
+  374:["Exit Error Alarm","An exit error condition has been reported","Αναφέρθηκε σφάλμα κατά την έξοδο","Burglary"],
+  375:["Panic Zone Trouble","A trouble condition detected on the panic zone","Βλάβη ανιχνεύθηκε στη ζώνη πανικού","Panic"],
+  376:["Hold-Up Zone Trouble","A trouble condition detected on the hold-up zone","Βλάβη ανιχνεύθηκε στη ζώνη ληστείας","Panic"],
+  377:["Swinger Trouble","A fault on a zone shut down due to excessive alarms","Βλάβη σε ζώνη που απενεργοποιήθηκε λόγω υπερβολικών συναγερμών","System"],
+  378:["Cross-Zone Trouble","The cross-zone configuration has faulted without its partner","Ζώνη διασταυρούμενης διαμόρφωσης παρουσίασε βλάβη χωρίς συνεργία","System"],
+  380:["Sensor Trouble","The specified sensor has reported a trouble condition","Ο αισθητήρας ανέφερε κατάσταση βλάβης","System"],
+  381:["Loss of Supervision – RF","A zone has failed to report in during its supervision period","Ζώνη δεν ανέφερε εντός του διαστήματος επιτήρησης RF","System"],
+  382:["Loss of Supervision – RPM","A Remote Polled Module has failed supervision","Απομακρυσμένη μονάδα RPM απέτυχε στην επιτήρηση","System"],
+  383:["Sensor Tamper","The tamper switch on the specified sensor has been faulted","Ο διακόπτης tamper του αισθητήρα παρουσίασε βλάβη","System"],
+  384:["RF Low Battery","A battery-powered RF zone has reported a low battery","Ζώνη RF με μπαταρία ανέφερε χαμηλή φόρτιση","System"],
+  385:["Smoke Hi Sensitivity","A smoke detector's sensitivity has drifted to the upper limit","Η ευαισθησία ανιχνευτή καπνού έχει αυξηθεί στο ανώτατο όριο","Fire"],
+  386:["Smoke Low Sensitivity","A smoke detector's sensitivity has drifted to the lower limit","Η ευαισθησία ανιχνευτή καπνού έχει μειωθεί στο κατώτατο όριο","Fire"],
+  387:["Intrusion Detector Hi Sensitivity","An intrusion detector's sensitivity has drifted to the upper limit","Η ευαισθησία ανιχνευτή εισβολής έχει αυξηθεί στο ανώτατο όριο","Burglary"],
+  388:["Intrusion Detector Low Sensitivity","An intrusion detector's sensitivity has drifted to the lower limit","Η ευαισθησία ανιχνευτή εισβολής έχει μειωθεί στο κατώτατο όριο","Burglary"],
+  389:["Sensor Self-Test Failure","The specified sensor has failed a self-test","Ο αισθητήρας απέτυχε σε αυτοδιαγνωστικό έλεγχο","System"],
+  391:["Sensor Watch Trouble","A motion sensor has not been triggered within a pre-defined time interval","Ο αισθητήρας κίνησης δεν ενεργοποιήθηκε εντός του καθορισμένου χρόνου","System"],
+  392:["Drift Compensation Error","A smoke detector cannot automatically adjust its sensitivity","Ο ανιχνευτής καπνού δεν μπορεί να ρυθμίσει αυτόματα την ευαισθησία","Fire"],
+  393:["Maintenance Alert","The specified zone requires maintenance","Η ζώνη χρειάζεται συντήρηση","System"],
+  394:["CO Detector Needs Replacement","The specified Carbon Monoxide detector has reached end-of-life","Ο ανιχνευτής CO έχει φτάσει στο τέλος της ωφέλιμης ζωής του","System"],
+  400:["Open/Close","The specified user has disarmed/armed the system","Ο χρήστης απενεργοποίησε/ενεργοποίησε το σύστημα","Open/Close"],
+  401:["O/C by User","The specified user has disarmed/armed the system","Ο χρήστης απενεργοποίησε/ενεργοποίησε το σύστημα","Open/Close"],
+  402:["Group O/C","A group of zones has been armed or disarmed","Ομάδα ζωνών ενεργοποιήθηκε ή απενεργοποιήθηκε","Open/Close"],
+  403:["Automatic O/C","A partition has been automatically armed or disarmed","Τμήμα ενεργοποιήθηκε ή απενεργοποιήθηκε αυτόματα","Open/Close"],
+  406:["Cancel","The specified user has cancelled the previously reported alarm","Ο χρήστης ακύρωσε τον προηγουμένως αναφερθέντα συναγερμό","Open/Close"],
+  407:["Remote Arm/Disarm","The specified user has armed or disarmed the system remotely","Ο χρήστης ενεργοποίησε/απενεργοποίησε εξ αποστάσεως","Open/Close"],
+  408:["Quick Arm","The specified user has quick-armed the system","Ο χρήστης ενεργοποίησε γρήγορα το σύστημα","Open/Close"],
+  409:["Keyswitch O/C","The specified user has armed or disarmed using a keyswitch","Ο χρήστης ενεργοποίησε/απενεργοποίησε με διακόπτη κλειδί","Open/Close"],
+  411:["Callback Request","A remote site has requested the panel call it back","Απομακρυσμένο κέντρο ζήτησε ανάκληση από τον πίνακα","System"],
+  412:["Successful Download","The configuration data has been successfully downloaded","Τα δεδομένα ρύθμισης λήφθηκαν επιτυχώς","System"],
+  413:["Unsuccessful Access","Failed attempts to remotely access the system","Αποτυχημένες απόπειρες απομακρυσμένης πρόσβασης","System"],
+  414:["System Shutdown Command","A central station has sent a system shutdown command","Κέντρο εξέδωσε εντολή τερματισμού λειτουργίας","System"],
+  415:["Dialer Shutdown Command","A central station has sent a dialer shutdown command","Κέντρο εξέδωσε εντολή διακοπής του dialer","System"],
+  416:["Successful Upload","The configuration data has been successfully uploaded","Τα δεδομένα ρύθμισης μεταφορτώθηκαν επιτυχώς","System"],
+  421:["Access Denied","The access control system has denied access to the specified user","Το σύστημα ελέγχου πρόσβασης αρνήθηκε την είσοδο στον χρήστη","Access"],
+  423:["Forced Access","The specified access control door has been forced open","Η πόρτα ελέγχου πρόσβασης ανοίχτηκε βίαια","Access"],
+  424:["Egress Denied","The access control system has denied egress","Το σύστημα αρνήθηκε την έξοδο στον χρήστη","Access"],
+  425:["Egress Granted","The access control system has granted egress","Το σύστημα ενέκρινε την έξοδο για τον χρήστη","Access"],
+  426:["Access Door Propped Open","The specified access control door has been held open","Η πόρτα ελέγχου πρόσβασης παραμένει ανοιχτή","Access"],
+  427:["Access Point DSM Trouble","The Access Point's Door Status Monitor has reported a trouble","Ο αισθητήρας κατάστασης πόρτας ανέφερε βλάβη","Access"],
+  428:["Access Point RTE Trouble","The Access Point's Request To Exit zone has reported a trouble","Η ζώνη αιτήματος εξόδου ανέφερε βλάβη","Access"],
+  429:["Access Program Mode Entry","The access control system has been put into program mode","Το σύστημα ελέγχου πρόσβασης μπήκε σε λειτουργία προγραμματισμού","Access"],
+  430:["Access Program Mode Exit","The access control system has exited program mode","Το σύστημα ελέγχου πρόσβασης βγήκε από τη λειτουργία προγραμματισμού","Access"],
+  431:["Access Threat Level Change","The access control system's threat level has been changed","Άλλαξε το επίπεδο απειλής του συστήματος ελέγχου πρόσβασης","Access"],
+  432:["Access Relay/Trigger Fail","The specified access control output device has failed to operate","Η συσκευή εξόδου ελέγχου πρόσβασης απέτυχε να λειτουργήσει","Access"],
+  433:["Access RTE Shunt","The specified Request To Exit zone has been shunted","Η ζώνη αιτήματος εξόδου έχει παρακαμφθεί","Access"],
+  434:["Access DSM Shunt","The specified Door Status Monitor zone has been shunted","Η ζώνη αισθητήρα κατάστασης πόρτας παρακαμφθηκε","Access"],
+  435:["Second Person Access","A second person has accessed an access point (Two-Man-Rule)","Δεύτερο άτομο απέκτησε πρόσβαση (κανόνας δύο ατόμων)","Access"],
+  441:["Armed STAY","The specified user has armed the system in STAY mode","Ο χρήστης ενεργοποίησε το σύστημα σε λειτουργία STAY","Open/Close"],
+  442:["Keyswitch Armed STAY","The specified user has armed in STAY mode using a keyswitch","Ενεργοποίηση STAY με διακόπτη κλειδί","Open/Close"],
+  443:["Armed with Trouble Override","The specified user has armed while overriding a trouble condition","Ενεργοποίηση με αγνόηση κατάστασης βλάβης","Open/Close"],
+  450:["Exception O/C","The system has been armed or disarmed outside the configured time window","Ενεργοποίηση/απενεργοποίηση εκτός του ρυθμισμένου χρονικού παραθύρου","Open/Close"],
+  451:["Early O/C","The system was armed/disarmed before the configured time window","Ενεργοποίηση/απενεργοποίηση πριν το χρονικό παράθυρο","Open/Close"],
+  452:["Late O/C","The system was armed/disarmed after the configured time window","Ενεργοποίηση/απενεργοποίηση μετά το χρονικό παράθυρο","Open/Close"],
+  453:["Failed to Open","The system failed to be disarmed during the designated time window","Αποτυχία απενεργοποίησης εντός του καθορισμένου χρονικού παραθύρου","Open/Close"],
+  454:["Failed to Close","The system failed to be armed during the designated time window","Αποτυχία ενεργοποίησης εντός του καθορισμένου χρονικού παραθύρου","Open/Close"],
+  455:["Auto-Arm Failed","The system has failed to automatically arm at the designated time","Αποτυχία αυτόματης ενεργοποίησης την καθορισμένη ώρα","Open/Close"],
+  456:["Partial Arm","The system has been only partially armed by the specified user","Το σύστημα ενεργοποιήθηκε μερικώς από τον χρήστη","Open/Close"],
+  457:["Exit Error (User)","The specified user has made an error exiting after arming","Ο χρήστης έκανε σφάλμα κατά την έξοδο μετά την ενεργοποίηση","Open/Close"],
+  458:["User on Premises","A user has disarmed the system after an alarm has occurred","Χρήστης απενεργοποίησε το σύστημα μετά από συναγερμό","Open/Close"],
+  459:["Recent Close","The system had been armed within the last few minutes","Το σύστημα είχε ενεργοποιηθεί εντός των τελευταίων λεπτών","Open/Close"],
+  461:["Wrong Code Entry","Incorrect code entered","Εισήχθη λανθασμένος κωδικός","Open/Close"],
+  462:["Legal Code Entry","Valid code entered","Εισήχθη έγκυρος κωδικός","Open/Close"],
+  463:["Re-arm after Alarm","System re-armed after alarm","Επανενεργοποίηση μετά από συναγερμό","Open/Close"],
+  464:["Auto-Arm Time Extended","A user has requested a delay in the automatic arming","Ο χρήστης ζήτησε αναβολή της αυτόματης ενεργοποίησης","Open/Close"],
+  465:["Panic Alarm Reset","The specified panic zone has been reset","Η ζώνη πανικού επαναφέρθηκε","Panic"],
+  466:["Service On/Off Premises","A service person has entered or left the premises","Τεχνικός εισήλθε ή αποχώρησε από τις εγκαταστάσεις","System"],
+  501:["Access Reader Disable","The credential reader on the specified access point has been disabled","Ο αναγνώστης διαπιστευτηρίων απενεργοποιήθηκε","Access"],
+  520:["Sounder/Relay Disable","The specified sounder or relay has been disabled","Η σειρήνα ή το ρελέ απενεργοποιήθηκε","System"],
+  521:["Bell 1 Disable","The specified output for Bell 1 has been disabled","Η έξοδος Bell 1 απενεργοποιήθηκε","System"],
+  522:["Bell 2 Disable","The specified output for Bell 2 has been disabled","Η έξοδος Bell 2 απενεργοποιήθηκε","System"],
+  523:["Alarm Relay Disable","The specified alarm relay has been disabled","Το ρελέ συναγερμού απενεργοποιήθηκε","System"],
+  524:["Trouble Relay Disable","The specified trouble relay has been disabled","Το ρελέ βλάβης απενεργοποιήθηκε","System"],
+  525:["Reversing Relay Disable","The specified reversing relay has been disabled","Το ρελέ αντιστροφής απενεργοποιήθηκε","System"],
+  526:["Notification Appliance #3 Disable","The specified output for Bell 3 has been disabled","Η έξοδος Bell 3 απενεργοποιήθηκε","System"],
+  527:["Notification Appliance #4 Disable","The specified output for Bell 4 has been disabled","Η έξοδος Bell 4 απενεργοποιήθηκε","System"],
+  531:["Module Added","The specified access control module has been added to the system","Module ελέγχου πρόσβασης προστέθηκε στο σύστημα","System"],
+  532:["Module Removed","The specified access control module has been removed from the system","Module ελέγχου πρόσβασης αφαιρέθηκε από το σύστημα","System"],
+  551:["Dialer Disabled","The specified dialer has been disabled","Το dialer απενεργοποιήθηκε","System"],
+  552:["Radio Transmitter Disabled","The specified radio transmitter has been disabled","Ο ραδιοπομπός απενεργοποιήθηκε","System"],
+  553:["Remote Upload/Download Disabled","Remote configuration has been enabled/disabled","Η απομακρυσμένη διαμόρφωση ενεργοποιήθηκε/απενεργοποιήθηκε","System"],
+  570:["Zone/Sensor Bypass","The specified zone or sensor has been bypassed","Η ζώνη ή ο αισθητήρας παρακαμφθηκε","Bypass"],
+  571:["Fire Bypass","The specified fire zone has been bypassed","Η ζώνη πυρός παρακαμφθηκε","Bypass"],
+  572:["24 Hour Zone Bypass","The specified 24 hour zone has been bypassed","Η ζώνη 24ωρης επιτήρησης παρακαμφθηκε","Bypass"],
+  573:["Burglary Bypass","The specified burglary zone has been bypassed","Η ζώνη διάρρηξης παρακαμφθηκε","Bypass"],
+  574:["Group Bypass","A group of zones has been bypassed","Ομάδα ζωνών παρακαμφθηκε","Bypass"],
+  575:["Swinger Bypass","A zone with excessive faults/restores has been bypassed","Ζώνη με υπερβολικές βλάβες/αποκαταστάσεις παρακαμφθηκε","Bypass"],
+  576:["Access Zone Shunt","The specified zone in the access control system has been shunted","Η ζώνη στο σύστημα ελέγχου πρόσβασης παρακαμφθηκε","Bypass"],
+  577:["Access Point Bypass","The specified access point has been bypassed","Το σημείο πρόσβασης παρακαμφθηκε","Bypass"],
+  578:["Vault Bypass","The specified vault zone has been bypassed","Η ζώνη θησαυροφυλακίου παρακαμφθηκε","Bypass"],
+  579:["Vent Zone Bypass","The specified vent zone has been bypassed","Η ζώνη αεραγωγού παρακαμφθηκε","Bypass"],
+  601:["Manual Test Report","A test report has been triggered manually","Εκκινήθηκε χειροκίνητα έκθεση δοκιμής","Test"],
+  602:["Periodic Test Report","A periodic test report has been triggered","Εκκινήθηκε περιοδική έκθεση δοκιμής","Test"],
+  603:["Periodic RF Transmission","A periodic RF path test report has been triggered","Εκκινήθηκε περιοδική δοκιμή διαδρομής RF","Test"],
+  604:["Fire Test","The specified user has initiated a test of the fire alarm zones","Ο χρήστης εκκίνησε δοκιμή ζωνών πυρανίχνευσης","Test"],
+  606:["Listen-in to Follow","The system is about to activate a 2-way audio session","Το σύστημα πρόκειται να ενεργοποιήσει αμφίδρομη ηχητική σύνδεση","Test"],
+  607:["Walk Test Mode","The specified user has placed the system into walk-test mode","Ο χρήστης έθεσε το σύστημα σε λειτουργία δοκιμής περιπάτου","Test"],
+  608:["Periodic Test – Trouble Present","A periodic test triggered but a trouble condition is present","Περιοδική δοκιμή εκκινήθηκε αλλά υπάρχει κατάσταση βλάβης","Test"],
+  609:["Video Transmitter Active","A video look-in session is about to begin","Σύνοδος βιντεοεποπτείας πρόκειται να ξεκινήσει","Test"],
+  611:["Point Tested OK","The specified point tested successfully","Το σημείο δοκιμάστηκε επιτυχώς","Test"],
+  612:["Point Not Tested","The specified point has not been tested","Το σημείο δεν έχει δοκιμαστεί","Test"],
+  613:["Intrusion Zone Walk Tested","The specified intrusion zone has been successfully walk-tested","Η ζώνη εισβολής δοκιμάστηκε επιτυχώς με περίπατο","Test"],
+  614:["Fire Zone Walk Tested","The specified fire zone has been successfully walk-tested","Η ζώνη πυρός δοκιμάστηκε επιτυχώς με περίπατο","Test"],
+  615:["Panic Zone Walk Tested","The specified panic zone has been successfully walk-tested","Η ζώνη πανικού δοκιμάστηκε επιτυχώς με περίπατο","Test"],
+  616:["Service Request","A request has been made for system servicing","Υποβλήθηκε αίτημα συντήρησης συστήματος","System"],
+  621:["Event Log Reset","The event log has been reset and all stored events discarded","Το αρχείο συμβάντων επαναφέρθηκε και όλα τα συμβάντα διαγράφηκαν","System"],
+  622:["Event Log 50% Full","The event log is 50% full","Το αρχείο συμβάντων είναι 50% πλήρες","System"],
+  623:["Event Log 90% Full","The event log is 90% full","Το αρχείο συμβάντων είναι 90% πλήρες","System"],
+  624:["Event Log Overflow","The event log has overflowed and events have been lost","Το αρχείο συμβάντων υπερχείλισε και χάθηκαν συμβάντα","System"],
+  625:["Time/Date Reset","The time and date have been reset to a new value","Η ώρα και η ημερομηνία επαναφέρθηκαν σε νέα τιμή","System"],
+  626:["Time/Date Inaccurate","The system time and date is known to be in error","Η ώρα και ημερομηνία του συστήματος είναι εσφαλμένες","System"],
+  627:["Program Mode Entry","The system has been placed into program mode","Το σύστημα μπήκε σε λειτουργία προγραμματισμού","System"],
+  628:["Program Mode Exit","The system has exited program mode","Το σύστημα βγήκε από τη λειτουργία προγραμματισμού","System"],
+  630:["Schedule Change","The specified fire/burglary schedule has been changed","Το πρόγραμμα πυρός/διάρρηξης άλλαξε","System"],
+  631:["Exception Schedule Change","The time schedule for event reporting by exception has been changed","Το χρονοδιάγραμμα εξαιρέσεων για αναφορά συμβάντων άλλαξε","System"],
+  632:["Access Schedule Change","The specified access control schedule has been changed","Το πρόγραμμα ελέγχου πρόσβασης άλλαξε","System"],
+  641:["Senior Watch Trouble","A person has not activated a motion sensor in a specified period","Άτομο δεν ενεργοποίησε ανιχνευτή κίνησης εντός του καθορισμένου χρόνου","System"],
+  642:["Latch-Key Supervision","A child has disarmed the system (after school)","Παιδί απενεργοποίησε το σύστημα (επιστροφή από σχολείο)","System"],
+  654:["System Inactivity","System has not been operated for an extended period","Το σύστημα δεν χρησιμοποιήθηκε για παρατεταμένο χρονικό διάστημα","System"],
+  655:["User Code Modified","The Installer has modified the specified user's code","Ο εγκαταστάτης τροποποίησε τον κωδικό του χρήστη","System"],
+  900:["Download Abort","The specified Downloader ID has aborted a download sequence","Η λήψη διακόπηκε από το Downloader ID","System"],
+  901:["Download Start/End","Downloader has started or ended a download sequence to the panel","Η λήψη δεδομένων στον πίνακα ξεκίνησε ή ολοκληρώθηκε","System"],
+  902:["Download Interrupted","A download sequence has been interrupted","Η ακολουθία λήψης διακόπηκε","System"],
+  910:["Auto-Close with Bypass","An auto-close sequence started and a zone has been bypassed","Αυτόματη ενεργοποίηση ξεκίνησε με παράκαμψη ζώνης","Open/Close"],
+  912:["Fire Alarm Silence","The fire alarm has been silenced","Ο συναγερμός πυρός σιγάστηκε","Fire"],
+  913:["Supervisory Point Test Start/End","A fire supervisory device has been tested","Δοκιμή συσκευής εποπτείας πυρός ξεκίνησε ή ολοκληρώθηκε","Test"],
+  914:["Hold-Up Test Start/End","The specified user has started or ended a hold-up test","Δοκιμή ληστείας ξεκίνησε ή ολοκληρώθηκε","Test"],
+  921:["Access Denied – Code Unknown","Access has been denied because the code was not recognised","Η πρόσβαση αρνήθηκε επειδή ο κωδικός δεν αναγνωρίστηκε","Access"],
+  922:["Supervisory Point Alarm","The specified supervisory point has reported an alarm condition","Το σημείο εποπτείας ανέφερε κατάσταση συναγερμού","System"],
+  923:["Supervisory Point Bypass","The specified supervisory point has been bypassed","Το σημείο εποπτείας παρακαμφθηκε","System"],
+  924:["Supervisory Point Trouble","The specified supervisory point has reported a trouble condition","Το σημείο εποπτείας ανέφερε κατάσταση βλάβης","System"],
+  925:["Hold-Up Point Bypass","The specified hold-up point has been bypassed","Το σημείο ληστείας παρακαμφθηκε","Panic"],
+  926:["AC Failure for 4 Hours","Loss of AC power for at least four hours","Απώλεια ρεύματος για τουλάχιστον τέσσερις ώρες","System"],
+  927:["Output Trouble","The specified output has reported a trouble condition","Η καθορισμένη έξοδος ανέφερε κατάσταση βλάβης","System"],
+  928:["User Code for Event","This message contains the ID of the user who triggered the previous event","Το μήνυμα περιέχει το ID του χρήστη που προκάλεσε το προηγούμενο συμβάν","System"],
+  929:["Log-Off","The specified user has logged-off of the system","Ο χρήστης αποσυνδέθηκε από το σύστημα","System"],
+  954:["CS Connection Failure","The specified CS connection has failed/restored","Η σύνδεση με το κέντρο λήψης σημάτων απέτυχε/αποκαταστάθηκε","System"],
+  961:["Receiver Database Fail/Restore","The connection to the receiver's database has failed/restored","Η σύνδεση με τη βάση δεδομένων του δέκτη απέτυχε/αποκαταστάθηκε","System"],
+  962:["License Expiration","The product license has been terminated","Η άδεια χρήσης του προϊόντος έχει λήξει","System"],
+};
+
+const SIA = {
+  AA:["Alarm – Panel Substitution","An attempt to substitute an alternate alarm panel has been made","Απόπειρα αντικατάστασης του πίνακα συναγερμού με άλλον","Burglary"],
+  AB:["Abort","An event message was not sent due to user action","Μήνυμα συμβάντος δεν εστάλη λόγω ενέργειας χρήστη","General"],
+  AN:["Analog Restoral","An analog fire sensor has been restored to normal operation","Αναλογικός αισθητήρας πυρός αποκαταστάθηκε σε κανονική λειτουργία","Fire"],
+  AR:["AC Restoral","AC power has been restored","Το εναλλασσόμενο ρεύμα αποκαταστάθηκε","System"],
+  AS:["Analog Service","An analog fire sensor needs to be cleaned or calibrated","Αναλογικός αισθητήρας πυρός χρειάζεται καθαρισμό ή βαθμονόμηση","Fire"],
+  AT:["AC Trouble","AC power has failed","Αποτυχία εναλλασσόμενου ρεύματος","System"],
+  BA:["Burglary Alarm","Burglary zone has been violated while armed","Ζώνη διάρρηξης παραβιάστηκε ενώ ήταν ενεργοποιημένη","Burglary"],
+  BB:["Burglary Bypass","Burglary zone has been bypassed","Ζώνη διάρρηξης παρακαμφθηκε","Bypass"],
+  BC:["Burglary Cancel","Alarm has been cancelled by authorized user","Ο συναγερμός ακυρώθηκε από εξουσιοδοτημένο χρήστη","Burglary"],
+  BD:["Swinger Trouble","A non-fire zone has been violated after a Swinger Shutdown","Μη-πύρινη ζώνη παραβιάστηκε μετά από Swinger Shutdown","Burglary"],
+  BE:["Swinger Trouble Restore","A non-fire zone restores from a Swinger Trouble state","Μη-πύρινη ζώνη αποκαταστάθηκε από κατάσταση Swinger Trouble","Burglary"],
+  BG:["Unverified Event – Burglary","A point in a Cross Point group went into alarm but Cross Point remained normal","Σημείο σε ομάδα Cross Point ενεργοποιήθηκε αλλά το Cross Point παρέμεινε κανονικό","Burglary"],
+  BH:["Burglary Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","Burglary"],
+  BJ:["Burglary Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","Burglary"],
+  BM:["Burglary Alarm – Cross Point","Burglary alarm with cross point also in alarm — alarm verified","Συναγερμός διάρρηξης με cross point επίσης σε συναγερμό — επαληθεύθηκε","Burglary"],
+  BR:["Burglary Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","Burglary"],
+  BS:["Burglary Supervisory","Unsafe intrusion detection system condition","Μη ασφαλής κατάσταση συστήματος ανίχνευσης εισβολής","Burglary"],
+  BT:["Burglary Trouble","Burglary zone disabled by fault","Ζώνη διάρρηξης απενεργοποιήθηκε λόγω βλάβης","Burglary"],
+  BU:["Burglary Unbypass","Zone bypass has been removed","Η παράκαμψη ζώνης αφαιρέθηκε","Bypass"],
+  BV:["Burglary Verified","A burglary alarm has occurred and been verified","Συναγερμός διάρρηξης συνέβη και επαληθεύθηκε","Burglary"],
+  BX:["Burglary Test","Burglary zone activated during testing","Ζώνη διάρρηξης ενεργοποιήθηκε κατά τη δοκιμή","Test"],
+  BZ:["Missing Supervision","A non-fire Supervisory point has gone missing","Σημείο εποπτείας (μη-πύρινο) δεν εντοπίζεται","Burglary"],
+  CA:["Automatic Closing","System armed automatically","Το σύστημα ενεργοποιήθηκε αυτόματα","Open/Close"],
+  CD:["Closing Delinquent","The system has not been armed for a programmed amount of time","Το σύστημα δεν ενεργοποιήθηκε για τον προγραμματισμένο χρόνο","Open/Close"],
+  CE:["Closing Extend","Extend closing time","Επέκταση χρόνου ενεργοποίησης","Open/Close"],
+  CF:["Forced Closing","System armed, some zones not ready","Σύστημα ενεργοποιήθηκε αλλά κάποιες ζώνες δεν ήταν έτοιμες","Open/Close"],
+  CG:["Close Area","System has been partially armed","Το σύστημα ενεργοποιήθηκε εν μέρει","Open/Close"],
+  CI:["Fail to Close","An area has not been armed at the end of the closing window","Τμήμα δεν ενεργοποιήθηκε στο τέλος του χρονικού παραθύρου","Open/Close"],
+  CJ:["Late Close","An area was armed after the closing window","Τμήμα ενεργοποιήθηκε μετά το χρονικό παράθυρο κλεισίματος","Open/Close"],
+  CK:["Early Close","An area was armed before the closing window","Τμήμα ενεργοποιήθηκε πριν το χρονικό παράθυρο κλεισίματος","Open/Close"],
+  CL:["Closing Report","System armed, normal","Σύστημα ενεργοποιήθηκε κανονικά","Open/Close"],
+  CM:["Missing Alarm – Recent Closing","A point has gone missing within 2 minutes of closing","Σημείο εξαφανίστηκε εντός 2 λεπτών από την ενεργοποίηση","Burglary"],
+  CO:["Command Sent","A command has been sent to an expansion/peripheral device","Εντολή εστάλη σε συσκευή επέκτασης/περιφερειακή","System"],
+  CP:["Automatic Closing","System armed automatically","Το σύστημα ενεργοποιήθηκε αυτόματα","Open/Close"],
+  CQ:["Remote Closing","The system was armed from a remote location","Το σύστημα ενεργοποιήθηκε εξ αποστάσεως","Open/Close"],
+  CR:["Recent Closing","An alarm occurred within five minutes after the system was closed","Συναγερμός εντός πέντε λεπτών μετά την ενεργοποίηση","Open/Close"],
+  CS:["Closing Keyswitch","Account has been armed by keyswitch","Ο λογαριασμός ενεργοποιήθηκε με διακόπτη κλειδί","Open/Close"],
+  CT:["Late to Open","System was not disarmed on time","Το σύστημα δεν απενεργοποιήθηκε εγκαίρως","Open/Close"],
+  CW:["Was Force Armed","Header for a force armed session","Επικεφαλίδα συνόδου αναγκαστικής ενεργοποίησης","Open/Close"],
+  CX:["Custom Function Executed","The panel has executed a preprogrammed set of instructions","Ο πίνακας εκτέλεσε προγραμματισμένο σύνολο εντολών","System"],
+  CZ:["Point Closing","A point, as opposed to a whole area, has closed","Ένα σημείο (όχι ολόκληρο τμήμα) ενεργοποιήθηκε","Open/Close"],
+  DA:["Card Assigned","An access ID has been added to the controller","Αναγνωριστικό πρόσβασης προστέθηκε στον ελεγκτή","Access"],
+  DB:["Card Deleted","An access ID has been deleted from the controller","Αναγνωριστικό πρόσβασης διαγράφηκε από τον ελεγκτή","Access"],
+  DC:["Access Closed","Access to all users prohibited","Πρόσβαση σε όλους τους χρήστες απαγορεύτηκε","Access"],
+  DD:["Access Denied","Access denied, unknown code","Άρνηση πρόσβασης, άγνωστος κωδικός","Access"],
+  DE:["Request to Enter","An access point was opened via a Request to Enter device","Σημείο πρόσβασης ανοίχτηκε μέσω συσκευής αιτήματος εισόδου","Access"],
+  DF:["Door Forced","Door opened without access request","Πόρτα ανοίχτηκε χωρίς αίτημα πρόσβασης","Access"],
+  DG:["Access Granted","Door access granted","Χορηγήθηκε πρόσβαση στην πόρτα","Access"],
+  DH:["Door Left Open – Restoral","An access point in a Door Left Open state has restored","Σημείο πρόσβασης σε κατάσταση 'πόρτα ανοιχτή' αποκαταστάθηκε","Access"],
+  DI:["Access Denied – Passback","Access denied because credential has not exited area before re-entering","Άρνηση πρόσβασης λόγω μη εξόδου πριν την επανείσοδο","Access"],
+  DJ:["Door Forced – Trouble","An access point has been forced open in an unarmed area","Σημείο πρόσβασης ανοίχτηκε βίαια σε μη-ενεργοποιημένη περιοχή","Access"],
+  DK:["Access Lockout","Access denied, known code","Άρνηση πρόσβασης, γνωστός κωδικός","Access"],
+  DL:["Door Left Open – Alarm","An open access point when open time expired in an armed area","Ανοιχτό σημείο πρόσβασης μετά τη λήξη χρόνου σε ενεργοποιημένη περιοχή","Access"],
+  DM:["Door Left Open – Trouble","An open access point when open time expired in an unarmed area","Ανοιχτό σημείο πρόσβασης μετά τη λήξη χρόνου σε μη-ενεργοποιημένη περιοχή","Access"],
+  DN:["Door Left Open","An access point was open when the door cycle time expired","Σημείο πρόσβασης παρέμεινε ανοιχτό μετά τη λήξη κύκλου πόρτας","Access"],
+  DO:["Access Open","Access to authorized users allowed","Πρόσβαση επιτρέπεται σε εξουσιοδοτημένους χρήστες","Access"],
+  DP:["Access Denied – Unauthorized Time","An access request was denied outside the user's authorized time window","Άρνηση πρόσβασης εκτός εξουσιοδοτημένου χρονικού παραθύρου","Access"],
+  DQ:["Access Denied – Unauthorized Arming State","An access request was denied because the user was not authorized when armed","Άρνηση πρόσβασης λόγω μη εξουσιοδότησης κατά την ενεργοποίηση","Access"],
+  DR:["Door Restoral","Access alarm/trouble condition eliminated","Κατάσταση συναγερμού/βλάβης πρόσβασης εξαλείφθηκε","Access"],
+  DS:["Door Station","Identifies door for next report","Αναγνωρίζει πόρτα για επόμενη αναφορά","Access"],
+  DT:["Access Trouble","Access system trouble","Βλάβη στο σύστημα ελέγχου πρόσβασης","Access"],
+  DU:["Dealer ID","Dealer ID number","Αναγνωριστικό αριθμός αντιπροσώπου","System"],
+  DV:["Access Denied – Unauthorized Entry Level","An access request was denied because the user is not authorized in this area","Άρνηση πρόσβασης λόγω μη εξουσιοδότησης στην περιοχή","Access"],
+  DW:["Access Denied – Interlock","An access request was denied because the associated Interlock point is open","Άρνηση πρόσβασης λόγω ανοιχτού σημείου Interlock","Access"],
+  DX:["Request to Exit","An access point was opened via a Request to Exit device","Σημείο πρόσβασης ανοίχτηκε μέσω συσκευής αιτήματος εξόδου","Access"],
+  DY:["Door Locked","The door's lock has been engaged","Η κλειδαριά της πόρτας ασφαλίστηκε","Access"],
+  DZ:["Access Denied – Door Secured","An access request was denied because the door has been placed in Access Closed state","Άρνηση πρόσβασης επειδή η πόρτα είναι σε κατάσταση κλειστής πρόσβασης","Access"],
+  EA:["Exit Alarm","An exit zone remained violated at the end of the exit delay period","Ζώνη εξόδου παρέμεινε παραβιασμένη μετά το τέλος καθυστέρησης εξόδου","Burglary"],
+  EE:["Exit Error","An exit zone remained violated at the end of the exit delay period","Ζώνη εξόδου παρέμεινε παραβιασμένη μετά τη λήξη καθυστέρησης","Burglary"],
+  EJ:["Expansion Tamper Restore","Expansion device tamper restoral","Αποκατάσταση tamper συσκευής επέκτασης","System"],
+  EM:["Expansion Device Missing","Expansion device missing","Συσκευή επέκτασης δεν εντοπίζεται","System"],
+  EN:["Expansion Missing Restore","Expansion device communications re-established","Επικοινωνία με συσκευή επέκτασης αποκαταστάθηκε","System"],
+  ER:["Expansion Restoral","Expansion device trouble eliminated","Βλάβη συσκευής επέκτασης εξαλείφθηκε","System"],
+  ES:["Expansion Device Tamper","Expansion device enclosure tamper","Παρέμβαση στο κέλυφος συσκευής επέκτασης","System"],
+  ET:["Expansion Trouble","Expansion device trouble","Βλάβη συσκευής επέκτασης","System"],
+  EX:["External Device Condition","A specific reportable condition is detected on an external device","Ανιχνεύθηκε συγκεκριμένη αναφέρσιμη κατάσταση σε εξωτερική συσκευή","System"],
+  EZ:["Missing Alarm – Exit Error","A point remained missing at the end of the exit delay period","Σημείο παρέμεινε αγνοούμενο στο τέλος της καθυστέρησης εξόδου","Burglary"],
+  FA:["Fire Alarm","Fire condition detected","Ανιχνεύθηκε κατάσταση πυρός","Fire"],
+  FB:["Fire Bypass","Zone has been bypassed","Η ζώνη παρακαμφθηκε","Bypass"],
+  FC:["Fire Cancel","A Fire Alarm has been cancelled by an authorized person","Ο συναγερμός πυρός ακυρώθηκε από εξουσιοδοτημένο άτομο","Fire"],
+  FG:["Unverified Event – Fire","A point in a Cross Point group went into alarm but Cross Point remained normal","Σημείο σε ομάδα Cross Point ενεργοποιήθηκε αλλά το Cross Point παρέμεινε κανονικό","Fire"],
+  FH:["Fire Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","Fire"],
+  FI:["Fire Test Begin","The transmitter area's fire test has begun","Η δοκιμή πυρός της περιοχής πομπού ξεκίνησε","Test"],
+  FJ:["Fire Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","Fire"],
+  FK:["Fire Test End","The transmitter area's fire test has ended","Η δοκιμή πυρός της περιοχής πομπού ολοκληρώθηκε","Test"],
+  FL:["Fire Alarm Silenced","The fire panel's sounder was silenced by command","Η σειρήνα πυρανίχνευσης σιγάστηκε κατ' εντολή","Fire"],
+  FM:["Fire Alarm – Cross Point","Fire Alarm with Cross Point also in alarm verifying the Fire Alarm","Συναγερμός πυρός με Cross Point επίσης σε συναγερμό — επαληθεύθηκε","Fire"],
+  FQ:["Fire Supervisory Trouble Restore","A fire supervisory zone in trouble has restored to normal","Ζώνη εποπτείας πυρός σε βλάβη αποκαταστάθηκε σε κανονική λειτουργία","Fire"],
+  FR:["Fire Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","Fire"],
+  FS:["Fire Supervisory","Unsafe fire detection system condition","Μη ασφαλής κατάσταση συστήματος πυρανίχνευσης","Fire"],
+  FT:["Fire Trouble","Zone disabled by fault","Ζώνη απενεργοποιήθηκε λόγω βλάβης","Fire"],
+  FU:["Fire Unbypass","Bypass has been removed","Η παράκαμψη αφαιρέθηκε","Bypass"],
+  FV:["Fire Supervision Restore","A fire supervision zone in alarm has restored to normal","Ζώνη εποπτείας πυρός σε συναγερμό αποκαταστάθηκε","Fire"],
+  FW:["Fire Supervisory Trouble","A fire supervisory zone is now in a trouble condition","Ζώνη εποπτείας πυρός βρίσκεται τώρα σε κατάσταση βλάβης","Fire"],
+  FX:["Fire Test","Fire zone activated during test","Ζώνη πυρός ενεργοποιήθηκε κατά τη δοκιμή","Test"],
+  FY:["Missing Fire Trouble","A fire point is now logically missing","Σημείο πυρός είναι τώρα λογικά αγνοούμενο","Fire"],
+  FZ:["Missing Fire Supervision","A Fire Supervisory point has gone missing","Σημείο εποπτείας πυρός δεν εντοπίζεται","Fire"],
+  GA:["Gas Alarm","Gas alarm condition detected","Ανιχνεύθηκε κατάσταση συναγερμού αερίου","General"],
+  GB:["Gas Bypass","Zone has been bypassed","Η ζώνη αερίου παρακαμφθηκε","Bypass"],
+  GH:["Gas Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","General"],
+  GJ:["Gas Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","General"],
+  GR:["Gas Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","General"],
+  GS:["Gas Supervisory","Unsafe gas detection system condition","Μη ασφαλής κατάσταση συστήματος ανίχνευσης αερίου","General"],
+  GT:["Gas Trouble","Zone disabled by fault","Ζώνη αερίου απενεργοποιήθηκε λόγω βλάβης","General"],
+  GU:["Gas Unbypass","Bypass has been removed","Η παράκαμψη αερίου αφαιρέθηκε","Bypass"],
+  GX:["Gas Test","Zone activated during test","Ζώνη αερίου ενεργοποιήθηκε κατά τη δοκιμή","Test"],
+  HA:["Holdup Alarm","Silent alarm, user under duress","Αθόρυβος συναγερμός, χρήστης υπό εξαναγκασμό","Panic"],
+  HB:["Holdup Bypass","Zone has been bypassed","Η ζώνη ληστείας παρακαμφθηκε","Bypass"],
+  HH:["Holdup Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","Panic"],
+  HJ:["Holdup Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","Panic"],
+  HR:["Holdup Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","Panic"],
+  HS:["Holdup Supervisory","Unsafe holdup system condition","Μη ασφαλής κατάσταση συστήματος ληστείας","Panic"],
+  HT:["Holdup Trouble","Zone disabled by fault","Ζώνη ληστείας απενεργοποιήθηκε λόγω βλάβης","Panic"],
+  HU:["Holdup Unbypass","Bypass has been removed","Η παράκαμψη ληστείας αφαιρέθηκε","Bypass"],
+  IA:["Equipment Failure","A specific, reportable condition is detected on a device","Ανιχνεύθηκε συγκεκριμένη αναφέρσιμη κατάσταση σε συσκευή","System"],
+  IR:["Equipment Fail – Restoral","The equipment condition has been restored to normal","Η κατάσταση του εξοπλισμού αποκαταστάθηκε σε κανονική","System"],
+  JA:["User Code Tamper","Too many unsuccessful attempts to enter a user ID","Πάρα πολλές αποτυχημένες απόπειρες εισαγωγής κωδικού χρήστη","System"],
+  JD:["Date Changed","The date was changed in the transmitter/receiver","Η ημερομηνία άλλαξε στον πομπό/δέκτη","System"],
+  JH:["Holiday Changed","The transmitter's holiday schedule has been changed","Το πρόγραμμα αργιών του πομπού άλλαξε","System"],
+  JK:["Latchkey Alert","A designated user passcode has not been entered during a scheduled time window","Καθορισμένος κωδικός χρήστη δεν εισήχθη εντός του χρονικού παραθύρου","System"],
+  JL:["Log Threshold","The transmitter's log memory has reached its threshold level","Η μνήμη αρχείου του πομπού έφτασε στο όριό της","System"],
+  JO:["Log Overflow","The transmitter's log memory has overflowed","Η μνήμη αρχείου του πομπού υπερχείλισε","System"],
+  JP:["User On Premises","A designated user passcode has been used to gain access","Καθορισμένος κωδικός χρήστη χρησιμοποιήθηκε για πρόσβαση στις εγκαταστάσεις","System"],
+  JR:["Schedule Executed","An automatic scheduled event was executed","Αυτόματο προγραμματισμένο συμβάν εκτελέστηκε","System"],
+  JS:["Schedule Changed","An automatic schedule was changed","Αυτόματο πρόγραμμα άλλαξε","System"],
+  JT:["Time Changed","The time was changed in the transmitter/receiver","Η ώρα άλλαξε στον πομπό/δέκτη","System"],
+  JV:["User Code Changed","A user's code has been changed","Ο κωδικός χρήστη άλλαξε","System"],
+  JX:["User Code Deleted","A user's code has been removed","Ο κωδικός χρήστη διαγράφηκε","System"],
+  JY:["User Code Added","A user's code has been added","Προστέθηκε νέος κωδικός χρήστη","System"],
+  JZ:["User Level Set","A user's authority level has been set","Ορίστηκε επίπεδο εξουσιοδότησης χρήστη","System"],
+  KA:["Heat Alarm","High temperature detected on premise","Ανιχνεύθηκε υψηλή θερμοκρασία στις εγκαταστάσεις","General"],
+  KB:["Heat Bypass","Zone has been bypassed","Η ζώνη θερμότητας παρακαμφθηκε","Bypass"],
+  KH:["Heat Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","General"],
+  KJ:["Heat Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","General"],
+  KR:["Heat Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","General"],
+  KS:["Heat Supervisory","Unsafe heat detection system condition","Μη ασφαλής κατάσταση συστήματος ανίχνευσης θερμότητας","General"],
+  KT:["Heat Trouble","Zone disabled by fault","Ζώνη θερμότητας απενεργοποιήθηκε λόγω βλάβης","General"],
+  KU:["Heat Unbypass","Bypass has been removed","Η παράκαμψη θερμότητας αφαιρέθηκε","Bypass"],
+  LB:["Local Program Begin","Begin local programming","Έναρξη τοπικού προγραμματισμού","System"],
+  LD:["Local Program Denied","Access code incorrect","Λανθασμένος κωδικός πρόσβασης","System"],
+  LE:["Listen-in Ended","The listen-in session has been terminated","Η σύνοδος ακρόασης τερματίστηκε","System"],
+  LF:["Listen-in Begin","The listen-in session with the RECEIVER has begun","Η σύνοδος ακρόασης με τον ΔΕΚΤΗ ξεκίνησε","System"],
+  LR:["Phone Line Restoral","Phone line restored to service","Τηλεφωνική γραμμή αποκαταστάθηκε","System"],
+  LS:["Local Program Success","Local programming successful","Επιτυχής τοπικός προγραμματισμός","System"],
+  LT:["Phone Line Trouble","Phone line trouble report","Βλάβη τηλεφωνικής γραμμής","System"],
+  LU:["Local Program Fail","Local programming unsuccessful","Αποτυχία τοπικού προγραμματισμού","System"],
+  LX:["Local Programming Ended","A local programming session has been terminated","Σύνοδος τοπικού προγραμματισμού τερματίστηκε","System"],
+  MA:["Medical Alarm","Emergency assistance request","Αίτημα έκτακτης ιατρικής βοήθειας","Medical"],
+  MB:["Medical Bypass","Zone has been bypassed","Η ιατρική ζώνη παρακαμφθηκε","Bypass"],
+  MH:["Medical Alarm Restore","Alarm condition eliminated","Κατάσταση ιατρικού συναγερμού εξαλείφθηκε","Medical"],
+  MI:["Message","A canned message is being sent","Αποστολή προκαθορισμένου μηνύματος","System"],
+  MJ:["Medical Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","Medical"],
+  MR:["Medical Restoral","Alarm/trouble condition has been eliminated","Κατάσταση ιατρικού συναγερμού/βλάβης εξαλείφθηκε","Medical"],
+  MS:["Medical Supervisory","Unsafe system condition exists","Μη ασφαλής κατάσταση ιατρικού συστήματος","Medical"],
+  MT:["Medical Trouble","Zone disabled by fault","Ιατρική ζώνη απενεργοποιήθηκε λόγω βλάβης","Medical"],
+  MU:["Medical Unbypass","Bypass has been removed","Η παράκαμψη ιατρικής ζώνης αφαιρέθηκε","Bypass"],
+  NA:["No Activity","There has been no zone activity for a programmed amount of time","Δεν υπήρξε δραστηριότητα ζώνης για προγραμματισμένο χρονικό διάστημα","System"],
+  NC:["Network Condition","A communications network has a specific reportable condition","Δίκτυο επικοινωνιών έχει συγκεκριμένη αναφέρσιμη κατάσταση","System"],
+  NF:["Forced Perimeter Arm","Some zones/points not ready","Αναγκαστική ενεργοποίηση περιμέτρου, κάποιες ζώνες δεν ήταν έτοιμες","Open/Close"],
+  NL:["Perimeter Armed","An area has been perimeter armed","Περιοχή ενεργοποιήθηκε σε λειτουργία περιμέτρου","Open/Close"],
+  NM:["Perimeter Armed, User Defined","A user defined area has been perimeter armed","Ορισμένη από χρήστη περιοχή ενεργοποιήθηκε περιμετρικά","Open/Close"],
+  NR:["Network Restoral","A communications network has returned to normal operation","Δίκτυο επικοινωνιών επέστρεψε σε κανονική λειτουργία","System"],
+  NS:["Activity Resumed","A zone has detected activity after an alert","Ζώνη ανίχνευσε δραστηριότητα μετά από ειδοποίηση","System"],
+  NT:["Network Failure","A communications network has failed","Αποτυχία δικτύου επικοινωνιών","System"],
+  OA:["Automatic Opening","System has disarmed automatically","Το σύστημα απενεργοποιήθηκε αυτόματα","Open/Close"],
+  OC:["Cancel Report","Untyped zone cancel","Ακύρωση αναφοράς μη τυποποιημένης ζώνης","Open/Close"],
+  OG:["Open Area","System has been partially disarmed","Το σύστημα απενεργοποιήθηκε εν μέρει","Open/Close"],
+  OH:["Early to Open from Alarm","An area in alarm was disarmed before the opening window","Περιοχή σε συναγερμό απενεργοποιήθηκε πριν το παράθυρο ανοίγματος","Open/Close"],
+  OI:["Fail to Open","An area has not been disarmed at the end of the opening window","Τμήμα δεν απενεργοποιήθηκε στο τέλος του χρονικού παραθύρου ανοίγματος","Open/Close"],
+  OJ:["Late Open","An area was disarmed after the opening window","Τμήμα απενεργοποιήθηκε μετά το χρονικό παράθυρο","Open/Close"],
+  OK:["Early Open","An area was disarmed before the opening window","Τμήμα απενεργοποιήθηκε πριν το χρονικό παράθυρο","Open/Close"],
+  OL:["Late to Open from Alarm","An area in alarm was disarmed after the opening window","Περιοχή σε συναγερμό απενεργοποιήθηκε μετά το παράθυρο ανοίγματος","Open/Close"],
+  OP:["Opening Report","Account was disarmed","Λογαριασμός απενεργοποιήθηκε","Open/Close"],
+  OQ:["Remote Opening","The system was disarmed from a remote location","Το σύστημα απενεργοποιήθηκε εξ αποστάσεως","Open/Close"],
+  OR:["Disarm From Alarm","Account in alarm was reset/disarmed","Λογαριασμός σε συναγερμό επαναφέρθηκε/απενεργοποιήθηκε","Open/Close"],
+  OS:["Opening Keyswitch","Account has been disarmed by keyswitch","Λογαριασμός απενεργοποιήθηκε με διακόπτη κλειδί","Open/Close"],
+  OT:["Late To Close","System was not armed on time","Το σύστημα δεν ενεργοποιήθηκε εγκαίρως","Open/Close"],
+  OU:["Output State – Trouble","An output on a peripheral device or NAC is not functioning","Έξοδος σε περιφερειακή συσκευή ή NAC δεν λειτουργεί","System"],
+  OV:["Output State – Restore","An output on a peripheral device or NAC is back to normal","Έξοδος σε περιφερειακή συσκευή ή NAC αποκαταστάθηκε","System"],
+  OZ:["Point Opening","A point, rather than a full area, disarmed","Σημείο (όχι ολόκληρο τμήμα) απενεργοποιήθηκε","Open/Close"],
+  PA:["Panic Alarm","Emergency assistance request, manually activated","Χειροκίνητο αίτημα έκτακτης βοήθειας","Panic"],
+  PB:["Panic Bypass","Panic zone has been bypassed","Η ζώνη πανικού παρακαμφθηκε","Bypass"],
+  PH:["Panic Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού πανικού εξαλείφθηκε","Panic"],
+  PJ:["Panic Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","Panic"],
+  PR:["Panic Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","Panic"],
+  PS:["Panic Supervisory","Unsafe system condition exists","Μη ασφαλής κατάσταση συστήματος πανικού","Panic"],
+  PT:["Panic Trouble","Zone disabled by fault","Ζώνη πανικού απενεργοποιήθηκε λόγω βλάβης","Panic"],
+  PU:["Panic Unbypass","Panic zone bypass has been removed","Η παράκαμψη ζώνης πανικού αφαιρέθηκε","Bypass"],
+  QA:["Emergency Alarm","Emergency assistance request","Αίτημα έκτακτης ανάγκης","General"],
+  QB:["Emergency Bypass","Zone has been bypassed","Η ζώνη έκτακτης ανάγκης παρακαμφθηκε","Bypass"],
+  QH:["Emergency Alarm Restore","Alarm condition has been eliminated","Κατάσταση συναγερμού έκτακτης ανάγκης εξαλείφθηκε","General"],
+  QJ:["Emergency Trouble Restore","Trouble condition has been eliminated","Κατάσταση βλάβης έκτακτης ανάγκης εξαλείφθηκε","General"],
+  QR:["Emergency Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","General"],
+  QS:["Emergency Supervisory","Unsafe system condition exists","Μη ασφαλής κατάσταση συστήματος έκτακτης ανάγκης","General"],
+  QT:["Emergency Trouble","Zone disabled by fault","Ζώνη έκτακτης ανάγκης απενεργοποιήθηκε λόγω βλάβης","General"],
+  QU:["Emergency Unbypass","Bypass has been removed","Η παράκαμψη έκτακτης ανάγκης αφαιρέθηκε","Bypass"],
+  RA:["Remote Programmer Call Failed","Transmitter failed to communicate with the remote programmer","Αποτυχία επικοινωνίας πομπού με τον απομακρυσμένο προγραμματιστή","System"],
+  RB:["Remote Program Begin","Remote programming session initiated","Σύνοδος απομακρυσμένου προγραμματισμού ξεκίνησε","System"],
+  RC:["Relay Close","A relay has energized","Ρελέ ενεργοποιήθηκε","System"],
+  RD:["Remote Program Denied","Access passcode incorrect","Λανθασμένος κωδικός απομακρυσμένης πρόσβασης","System"],
+  RN:["Remote Reset","A TRANSMITTER was reset via a remote programmer","Ο ΠΟΜΠΟΣ επαναφέρθηκε μέσω απομακρυσμένου προγραμματιστή","System"],
+  RO:["Relay Open","A relay has de-energized","Ρελέ απενεργοποιήθηκε","System"],
+  RP:["Automatic Test","Automatic communication test report","Αυτόματη έκθεση δοκιμής επικοινωνίας","Test"],
+  RR:["Power Up","System lost power, is now restored","Το σύστημα έχασε τροφοδοσία, τώρα αποκαταστάθηκε","System"],
+  RS:["Remote Program Success","Remote programming successful","Επιτυχής απομακρυσμένος προγραμματισμός","System"],
+  RT:["Data Lost","Dialer data lost, transmission error","Απώλεια δεδομένων dialer, σφάλμα μετάδοσης","System"],
+  RU:["Remote Program Fail","Remote programming unsuccessful","Αποτυχία απομακρυσμένου προγραμματισμού","System"],
+  RX:["Manual Test","Manual communication test report","Χειροκίνητη έκθεση δοκιμής επικοινωνίας","Test"],
+  RY:["Test Off Normal","Test signal(s) indicates abnormal condition(s) exist","Σήμα δοκιμής υποδεικνύει μη κανονική κατάσταση","Test"],
+  SA:["Sprinkler Alarm","Sprinkler flow condition exists","Ανιχνεύθηκε ροή στο σύστημα καταιονισμού","Fire"],
+  SB:["Sprinkler Bypass","Sprinkler zone has been bypassed","Ζώνη καταιονισμού παρακαμφθηκε","Bypass"],
+  SC:["Change of State","An expansion/peripheral device is reporting a new condition","Συσκευή επέκτασης/περιφερειακή αναφέρει νέα κατάσταση","System"],
+  SH:["Sprinkler Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού καταιονισμού εξαλείφθηκε","Fire"],
+  SJ:["Sprinkler Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης καταιονισμού εξαλείφθηκε","Fire"],
+  SR:["Sprinkler Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","Fire"],
+  SS:["Sprinkler Supervisory","Unsafe sprinkler system condition","Μη ασφαλής κατάσταση συστήματος καταιονισμού","Fire"],
+  ST:["Sprinkler Trouble","Zone disabled by fault","Ζώνη καταιονισμού απενεργοποιήθηκε λόγω βλάβης","Fire"],
+  SU:["Sprinkler Unbypass","Sprinkler zone bypass has been removed","Η παράκαμψη ζώνης καταιονισμού αφαιρέθηκε","Bypass"],
+  TA:["Tamper Alarm","Alarm equipment enclosure opened","Κέλυφος εξοπλισμού συναγερμού ανοίχτηκε","System"],
+  TB:["Tamper Bypass","Tamper detection has been bypassed","Η ανίχνευση tamper παρακαμφθηκε","Bypass"],
+  TC:["All Points Tested","All points tested","Όλα τα σημεία δοκιμάστηκαν","Test"],
+  TE:["Test End","Communicator restored to operation","Ο επικοινωνητής αποκαταστάθηκε σε λειτουργία","Test"],
+  TH:["Tamper Alarm Restore","An Expansion Device's tamper switch restores from an Alarm state","Διακόπτης tamper συσκευής επέκτασης αποκαταστάθηκε από κατάσταση Alarm","System"],
+  TJ:["Tamper Trouble Restore","An Expansion Device's tamper switch restores from a Trouble state","Διακόπτης tamper αποκαταστάθηκε από κατάσταση Trouble","System"],
+  TP:["Walk Test Point","This point was tested during a Walk Test","Αυτό το σημείο δοκιμάστηκε κατά τη δοκιμή περιπάτου","Test"],
+  TR:["Tamper Restoral","Alarm equipment enclosure has been closed","Το κέλυφος εξοπλισμού συναγερμού έκλεισε","System"],
+  TS:["Test Start","Communicator taken out of operation","Ο επικοινωνητής τέθηκε εκτός λειτουργίας","Test"],
+  TT:["Tamper Trouble","Equipment enclosure opened in disarmed state","Κέλυφος εξοπλισμού ανοίχτηκε ενώ ήταν απενεργοποιημένο","System"],
+  TU:["Tamper Unbypass","Tamper detection bypass has been removed","Η παράκαμψη ανίχνευσης tamper αφαιρέθηκε","Bypass"],
+  TW:["Area Watch Start","Area watch feature has been activated","Η λειτουργία παρακολούθησης περιοχής ενεργοποιήθηκε","System"],
+  TX:["Test Report","An unspecified communicator test","Μη εξειδικευμένη δοκιμή επικοινωνητή","Test"],
+  TZ:["Area Watch End","Area watch feature has been deactivated","Η λειτουργία παρακολούθησης περιοχής απενεργοποιήθηκε","System"],
+  UA:["Untyped Zone Alarm","Alarm condition from zone of unknown type","Κατάσταση συναγερμού από ζώνη άγνωστου τύπου","General"],
+  UB:["Untyped Zone Bypass","Zone of unknown type has been bypassed","Ζώνη άγνωστου τύπου παρακαμφθηκε","Bypass"],
+  UG:["Unverified Event – Untyped","A point in a Cross Point group went into alarm but Cross Point remained normal","Μη επαληθευμένο συμβάν σε ζώνη άγνωστου τύπου","General"],
+  UH:["Untyped Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού εξαλείφθηκε","General"],
+  UJ:["Untyped Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","General"],
+  UR:["Untyped Zone Restoral","Alarm/trouble condition eliminated from zone of unknown type","Κατάσταση εξαλείφθηκε σε ζώνη άγνωστου τύπου","General"],
+  US:["Untyped Zone Supervisory","Unsafe condition from zone of unknown type","Μη ασφαλής κατάσταση σε ζώνη άγνωστου τύπου","General"],
+  UT:["Untyped Zone Trouble","Trouble condition from zone of unknown type","Βλάβη σε ζώνη άγνωστου τύπου","General"],
+  UU:["Untyped Zone Unbypass","Bypass on zone of unknown type has been removed","Παράκαμψη ζώνης άγνωστου τύπου αφαιρέθηκε","Bypass"],
+  UX:["Undefined","An undefined alarm condition has occurred","Μη ορισμένη κατάσταση συναγερμού","General"],
+  UY:["Untyped Missing Trouble","A point or device which was not armed is now logically missing","Σημείο/συσκευή που δεν ήταν ενεργοποιημένη είναι τώρα λογικά αγνοούμενη","General"],
+  UZ:["Untyped Missing Alarm","A point or device which was armed is now logically missing","Σημείο/συσκευή που ήταν ενεργοποιημένη είναι τώρα λογικά αγνοούμενη","General"],
+  VI:["Printer Paper In","TRANSMITTER or RECEIVER paper in","Χαρτί τοποθετήθηκε στον εκτυπωτή ΠΟΜΠΟΥ/ΔΕΚΤΗ","System"],
+  VO:["Printer Paper Out","TRANSMITTER or RECEIVER paper out","Εξάντληση χαρτιού εκτυπωτή ΠΟΜΠΟΥ/ΔΕΚΤΗ","System"],
+  VR:["Printer Restore","TRANSMITTER or RECEIVER trouble restored","Βλάβη εκτυπωτή αποκαταστάθηκε","System"],
+  VT:["Printer Trouble","TRANSMITTER or RECEIVER trouble","Βλάβη εκτυπωτή ΠΟΜΠΟΥ/ΔΕΚΤΗ","System"],
+  VX:["Printer Test","TRANSMITTER or RECEIVER test","Δοκιμή εκτυπωτή ΠΟΜΠΟΥ/ΔΕΚΤΗ","Test"],
+  VY:["Printer Online","RECEIVER'S printer is now online","Ο εκτυπωτής του ΔΕΚΤΗ είναι τώρα σε σύνδεση","System"],
+  VZ:["Printer Offline","RECEIVER'S printer is now offline","Ο εκτυπωτής του ΔΕΚΤΗ είναι τώρα εκτός σύνδεσης","System"],
+  WA:["Water Alarm","Water detected at protected premises","Ανιχνεύθηκε νερό στις προστατευμένες εγκαταστάσεις","General"],
+  WB:["Water Bypass","Water detection has been bypassed","Η ανίχνευση νερού παρακαμφθηκε","Bypass"],
+  WH:["Water Alarm Restore","Water alarm condition eliminated","Κατάσταση συναγερμού νερού εξαλείφθηκε","General"],
+  WJ:["Water Trouble Restore","Water trouble condition eliminated","Κατάσταση βλάβης νερού εξαλείφθηκε","General"],
+  WR:["Water Restoral","Water alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης νερού εξαλείφθηκε","General"],
+  WS:["Water Supervisory","Unsafe water detection system condition","Μη ασφαλής κατάσταση συστήματος ανίχνευσης νερού","General"],
+  WT:["Water Trouble","Water zone disabled by fault","Ζώνη νερού απενεργοποιήθηκε λόγω βλάβης","General"],
+  WU:["Water Unbypass","Water detection bypass has been removed","Η παράκαμψη ανίχνευσης νερού αφαιρέθηκε","Bypass"],
+  XA:["Extra Account Report","CS RECEIVER has received an event from a non-existent account","Ο ΔΕΚΤΗΣ ΚΛΣ έλαβε συμβάν από μη υπάρχοντα λογαριασμό","System"],
+  XE:["Extra Point","Panel has sensed an extra point not specified for this site","Ο πίνακας ανίχνευσε επιπλέον σημείο που δεν έχει ορισθεί","System"],
+  XF:["Extra RF Point","Panel has sensed an extra RF point not specified for this site","Ο πίνακας ανίχνευσε επιπλέον σημείο RF που δεν έχει ορισθεί","System"],
+  XH:["RF Interference Restoral","A radio device is no longer detecting RF Interference","Ραδιοσυσκευή δεν ανιχνεύει πλέον παρεμβολή RF","System"],
+  XI:["Sensor Reset","A user has reset a sensor","Χρήστης επαναφορτώθηκε αισθητήρα","System"],
+  XJ:["RF Receiver Tamper Restoral","A Tamper condition at a premises RF Receiver has been restored","Κατάσταση tamper σε δέκτη RF εγκαταστάσεων αποκαταστάθηκε","System"],
+  XL:["Low Received Signal Strength","The RF signal strength of a reported event is below minimum level","Η ισχύς σήματος RF είναι κάτω από το ελάχιστο επίπεδο","System"],
+  XM:["Missing Alarm – Cross Point","Missing Alarm verified by Cross Point in Alarm","Αγνοούμενος συναγερμός επαληθεύθηκε από Cross Point σε συναγερμό","Burglary"],
+  XQ:["RF Interference","A radio device is detecting RF Interference","Ραδιοσυσκευή ανιχνεύει παρεμβολή RF","System"],
+  XR:["Transmitter Battery Restoral","Low battery has been corrected","Χαμηλή μπαταρία αποκαταστάθηκε","System"],
+  XS:["RF Receiver Tamper","A Tamper condition at a premises receiver is detected","Ανιχνεύθηκε κατάσταση tamper σε δέκτη εγκαταστάσεων","System"],
+  XT:["Transmitter Battery Trouble","Low battery in wireless transmitter","Χαμηλή μπαταρία σε ασύρματο πομπό","System"],
+  XW:["Forced Point","A point was forced out of the system at arm time","Σημείο αφαιρέθηκε βίαια κατά την ενεργοποίηση","System"],
+  XX:["Fail to Test","A specific test from a panel was not received","Συγκεκριμένη δοκιμή από πίνακα δεν ελήφθη","Test"],
+  YA:["Bell Fault","A trouble condition detected on a Local Bell, Siren, or Annunciator","Βλάβη ανιχνεύθηκε σε τοπική σειρήνα ή ανακοινωτή","System"],
+  YB:["Busy Seconds","Percent of time receiver's line card is on-line","Ποσοστό χρόνου που η κάρτα γραμμής δέκτη είναι σε σύνδεση","System"],
+  YC:["Communications Fail","RECEIVER and TRANSMITTER communication failure","Αποτυχία επικοινωνίας ΔΕΚΤΗ και ΠΟΜΠΟΥ","System"],
+  YD:["Receiver Line Card Trouble","A line card is in trouble","Κάρτα γραμμής σε βλάβη","System"],
+  YE:["Receiver Line Card Restored","A line card is restored","Κάρτα γραμμής αποκαταστάθηκε","System"],
+  YF:["Parameter Checksum Fail","System data corrupted","Δεδομένα συστήματος κατεστραμμένα","System"],
+  YG:["Parameter Changed","A TRANSMITTER'S parameters have been changed","Οι παράμετροι ΠΟΜΠΟΥ άλλαξαν","System"],
+  YH:["Bell Restored","A trouble condition has been restored on a Local Bell, Siren, or Annunciator","Βλάβη σε τοπική σειρήνα ή ανακοινωτή αποκαταστάθηκε","System"],
+  YI:["Overcurrent Trouble","An Expansion Device has detected an overcurrent condition","Συσκευή επέκτασης ανίχνευσε κατάσταση υπερέντασης","System"],
+  YJ:["Overcurrent Restore","An Expansion Device has restored from an overcurrent condition","Συσκευή επέκτασης αποκαταστάθηκε από κατάσταση υπερέντασης","System"],
+  YK:["Communications Restoral","TRANSMITTER has resumed communication with a RECEIVER","Ο ΠΟΜΠΟΣ επανέλαβε επικοινωνία με τον ΔΕΚΤΗ","System"],
+  YM:["System Battery Missing","TRANSMITTER/RECEIVER battery is missing","Η μπαταρία ΠΟΜΠΟΥ/ΔΕΚΤΗ λείπει","System"],
+  YN:["Invalid Report","TRANSMITTER has sent a packet with invalid data","Ο ΠΟΜΠΟΣ έστειλε πακέτο με μη έγκυρα δεδομένα","System"],
+  YO:["Unknown Message","An unknown message was received from automation or the printer","Ελήφθη άγνωστο μήνυμα από αυτοματισμό ή εκτυπωτή","System"],
+  YP:["Power Supply Trouble","TRANSMITTER/RECEIVER has a problem with the power supply","Ο ΠΟΜΠΟΣ/ΔΕΚΤΗΣ έχει πρόβλημα τροφοδοσίας","System"],
+  YQ:["Power Supply Restored","TRANSMITTER'S/RECEIVER'S power supply has been restored","Η τροφοδοσία ΠΟΜΠΟΥ/ΔΕΚΤΗ αποκαταστάθηκε","System"],
+  YR:["System Battery Restoral","Low battery has been corrected","Χαμηλή μπαταρία αποκαταστάθηκε","System"],
+  YS:["Communications Trouble","RECEIVER and TRANSMITTER communication trouble","Πρόβλημα επικοινωνίας ΔΕΚΤΗ και ΠΟΜΠΟΥ","System"],
+  YT:["System Battery Trouble","Low battery in control/communicator","Χαμηλή μπαταρία σε πίνακα/επικοινωνητή","System"],
+  YU:["Diagnostic Error","An expansion/peripheral device is reporting a diagnostic error","Συσκευή επέκτασης/περιφερειακή αναφέρει διαγνωστικό σφάλμα","System"],
+  YW:["Watchdog Reset","The TRANSMITTER created an internal reset","Ο ΠΟΜΠΟΣ δημιούργησε εσωτερική επαναφορά","System"],
+  YX:["Service Required","A TRANSMITTER/RECEIVER needs service","Ο ΠΟΜΠΟΣ/ΔΕΚΤΗΣ χρειάζεται σέρβις","System"],
+  YY:["Status Report","This is a header for an account status report","Επικεφαλίδα αναφοράς κατάστασης λογαριασμού","System"],
+  YZ:["Service Completed","Required TRANSMITTER/RECEIVER service completed","Ολοκληρώθηκε η απαιτούμενη συντήρηση ΠΟΜΠΟΥ/ΔΕΚΤΗ","System"],
+  ZA:["Freeze Alarm","Low temperature detected at premises","Ανιχνεύθηκε χαμηλή θερμοκρασία στις εγκαταστάσεις","General"],
+  ZB:["Freeze Bypass","Low temperature detection has been bypassed","Η ανίχνευση χαμηλής θερμοκρασίας παρακαμφθηκε","Bypass"],
+  ZH:["Freeze Alarm Restore","Alarm condition eliminated","Κατάσταση συναγερμού χαμηλής θερμοκρασίας εξαλείφθηκε","General"],
+  ZJ:["Freeze Trouble Restore","Trouble condition eliminated","Κατάσταση βλάβης εξαλείφθηκε","General"],
+  ZR:["Freeze Restoral","Alarm/trouble condition has been eliminated","Κατάσταση συναγερμού/βλάβης εξαλείφθηκε","General"],
+  ZS:["Freeze Supervisory","Unsafe freeze detection system condition","Μη ασφαλής κατάσταση συστήματος ανίχνευσης παγετού","General"],
+  ZT:["Freeze Trouble","Zone disabled by fault","Ζώνη παγετού απενεργοποιήθηκε λόγω βλάβης","General"],
+  ZU:["Freeze Unbypass","Low temperature detection bypass removed","Παράκαμψη ανίχνευσης χαμηλής θερμοκρασίας αφαιρέθηκε","Bypass"],
+};
+
+// ─── Build flat rows ──────────────────────────────────────────────────────────
+const ALL_ROWS = [];
+for (const [k, v] of Object.entries(CID))
+  ALL_ROWS.push({ proto:'CID', code: String(k).padStart(3,'0'), rawCode: String(k), title: v[0], desc: v[1], cat: v[3] });
+for (const [k, v] of Object.entries(SIA))
+  ALL_ROWS.push({ proto:'SIA', code: k, rawCode: k, title: v[0], desc: v[1], cat: v[3] });
+
+// ─── Category styling helpers ─────────────────────────────────────────────────
+const catDotClass = { Fire:'dot-fire', Burglary:'dot-burg', Panic:'dot-panic', 'Open/Close':'dot-open',
+  Access:'dot-access', System:'dot-system', Medical:'dot-medical', General:'dot-general', Bypass:'dot-bypass', Test:'dot-test' };
+
+function catClass(cat) {
+  const m = { Fire:'cat-fire', Burglary:'cat-burg', Panic:'cat-fire', 'Open/Close':'cat-open',
+              Access:'cat-system', System:'cat-system', Medical:'cat-fire', General:'cat-system',
+              Bypass:'cat-system', Test:'cat-system' };
+  return m[cat] || '';
+}
+
+// ─── BROWSE STATE ─────────────────────────────────────────────────────────────
+let browseQuery = '';
+let browseProto = 'all';
+let browseCat = 'All';
+let sortCol = 'code';
+let sortDir = 1; // 1 = asc, -1 = desc
+const PAGE_SIZE = 50;
+let page = 1;
+
+function highlight(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+function filteredRows() {
+  const q = browseQuery.toLowerCase();
+  return ALL_ROWS.filter(r => {
+    if (browseProto !== 'all' && r.proto.toLowerCase() !== browseProto) return false;
+    if (browseCat !== 'All' && r.cat !== browseCat) return false;
+    if (q && !r.code.toLowerCase().includes(q) && !r.title.toLowerCase().includes(q) && !r.desc.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function sortedRows(rows) {
+  return [...rows].sort((a, b) => {
+    let av = a[sortCol] || '', bv = b[sortCol] || '';
+    if (sortCol === 'code') {
+      // CID numeric, SIA alpha — put CID first naturally
+      const aNum = parseInt(av), bNum = parseInt(bv);
+      if (!isNaN(aNum) && !isNaN(bNum)) return (aNum - bNum) * sortDir;
+      if (!isNaN(aNum)) return -1 * sortDir;
+      if (!isNaN(bNum)) return 1 * sortDir;
+    }
+    return av.localeCompare(bv) * sortDir;
+  });
+}
+
+function renderBrowse() {
+  const rows = sortedRows(filteredRows());
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const start = (page - 1) * PAGE_SIZE;
+  const slice = rows.slice(start, start + PAGE_SIZE);
+  const q = browseQuery;
+
+  // Stats
+  document.getElementById('browseStats').innerHTML =
+    `<span>${total.toLocaleString()}</span> codes · page <span>${page}</span> of <span>${totalPages}</span>`;
+
+  // Table body
+  const tbody = document.getElementById('browseBody');
+  if (slice.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">∅</div><div class="empty-msg">No codes match your filters</div></div></td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map((r, i) => {
+      const dot = catDotClass[r.cat] || 'dot-general';
+      const protoClass = r.proto === 'CID' ? 'cid' : 'sia';
+      const codeClass  = r.proto === 'CID' ? 'cid-code' : 'sia-code';
+      return `<tr class="${i % 2 === 0 ? '' : 'row-highlight'}" data-proto="${r.proto}" data-code="${r.rawCode}">
+        <td class="td-code ${codeClass}">${highlight(r.code, q)}</td>
+        <td class="td-title">${highlight(r.title, q)}</td>
+        <td class="td-desc">${highlight(r.desc, q)}</td>
+        <td class="td-proto"><span class="proto-pill ${protoClass}">${r.proto}</span></td>
+        <td><div class="td-cat"><span class="cat-dot ${dot}"></span>${r.cat}</div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Sort arrows
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sortCol);
+    const arrow = th.querySelector('.sort-arrow');
+    if (th.dataset.col === sortCol) arrow.textContent = sortDir === 1 ? '↑' : '↓';
+    else arrow.textContent = '↕';
+  });
+
+  // Pagination
+  const pageInfo = document.getElementById('pageInfo');
+  const pageBtns = document.getElementById('pageBtns');
+  pageInfo.textContent = `${start + 1}–${Math.min(start + PAGE_SIZE, total)} of ${total}`;
+
+  let btns = '';
+  btns += `<button class="page-btn" id="prevBtn" ${page === 1 ? 'disabled' : ''}>← Prev</button>`;
+  // Show up to 5 page numbers
+  const pageNums = [];
+  const wing = 2;
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || (p >= page - wing && p <= page + wing)) pageNums.push(p);
+    else if (pageNums[pageNums.length-1] !== '…') pageNums.push('…');
+  }
+  pageNums.forEach(p => {
+    if (p === '…') btns += `<button class="page-btn" disabled>…</button>`;
+    else btns += `<button class="page-btn ${p === page ? 'active' : ''}" data-page="${p}">${p}</button>`;
+  });
+  btns += `<button class="page-btn" id="nextBtn" ${page === totalPages ? 'disabled' : ''}>Next →</button>`;
+  pageBtns.innerHTML = btns;
+
+  pageBtns.querySelectorAll('[data-page]').forEach(b => {
+    b.addEventListener('click', () => { page = parseInt(b.dataset.page); renderBrowse(); });
+  });
+  const prev = pageBtns.querySelector('#prevBtn');
+  const next = pageBtns.querySelector('#nextBtn');
+  if (prev) prev.addEventListener('click', () => { page--; renderBrowse(); });
+  if (next) next.addEventListener('click', () => { page++; renderBrowse(); });
+}
+
+// ─── Browse event wiring ──────────────────────────────────────────────────────
+document.getElementById('browseSearch').addEventListener('input', e => {
+  browseQuery = e.target.value.trim();
+  page = 1;
+  renderBrowse();
+});
+
+document.querySelectorAll('.proto-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.proto-chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    browseProto = c.dataset.proto;
+    page = 1;
+    renderBrowse();
+  });
+});
+
+document.querySelectorAll('.cat-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    browseCat = c.dataset.cat;
+    page = 1;
+    renderBrowse();
+  });
+});
+
+document.querySelectorAll('th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    if (sortCol === th.dataset.col) sortDir *= -1;
+    else { sortCol = th.dataset.col; sortDir = 1; }
+    renderBrowse();
+  });
+});
+
+// Click row → switch to lookup
+document.getElementById('browseBody').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-code]');
+  if (!tr) return;
+  const code = tr.dataset.code;
+  document.querySelector('[data-mode="lookup"]').click();
+  const input = document.getElementById('codeInput');
+  input.value = code;
+  render(code);
+  document.getElementById('clearBtn').classList.add('visible');
+  input.focus();
+});
+
+// ─── LOOKUP LOGIC ─────────────────────────────────────────────────────────────
+let activeProto = 'both';
+let activeLang = 'both';
+
+function lookup(raw) {
+  const val = raw.trim();
+  if (!val) return null;
+  const numKey = parseInt(val, 10);
+  const strKey = val.toUpperCase();
+  let results = [];
+  if ((activeProto === 'both' || activeProto === 'cid') && !isNaN(numKey) && CID[numKey])
+    results.push({ proto:'CID', code: String(numKey).padStart(3,'0'), data: CID[numKey] });
+  if ((activeProto === 'both' || activeProto === 'sia') && SIA[strKey])
+    if (!results.find(r => r.proto === 'SIA'))
+      results.push({ proto:'SIA', code: strKey, data: SIA[strKey] });
+  return results.length ? results : null;
+}
+
+function render(raw) {
+  const resultWrap = document.getElementById('resultWrap');
+  const resultCard = document.getElementById('resultCard');
+  const resultInner = document.getElementById('resultInner');
+  if (!raw.trim()) { resultWrap.classList.remove('visible'); return; }
+  const results = lookup(raw);
+  resultWrap.classList.add('visible');
+  if (!results) {
+    resultCard.className = 'result-card not-found';
+    resultInner.innerHTML = `<div class="not-found-inner"><div class="not-found-code">Code "${raw.trim().toUpperCase()}"</div><div class="not-found-msg">No definition found · Δεν βρέθηκε ορισμός</div></div>`;
+    return;
+  }
+  resultCard.className = `result-card found ${catClass(results[0].data[3])}`;
+  resultInner.innerHTML = results.map(r => {
+    const [title, descEn, descEl, cat] = r.data;
+    const tagClass = r.proto === 'CID' ? 'tag-cid' : 'tag-sia';
+    const tagLabel = r.proto === 'CID' ? 'Contact ID' : 'SIA DC-09';
+    const showEn = activeLang === 'both' || activeLang === 'en';
+    const showEl = activeLang === 'both' || activeLang === 'el';
+    return `
+      <div class="result-top">
+        <div class="result-code-block">
+          <span class="result-code-label">Code</span>
+          <span class="result-code-val">${r.code}</span>
+        </div>
+        <span class="result-proto-tag ${tagClass}">${tagLabel}</span>
+      </div>
+      <div class="result-body">
+        <div class="result-title">${title}</div>
+        ${showEn ? `<div class="result-desc">${descEn}</div>` : ''}
+        ${showEl ? `<div class="result-desc-el show"><span class="greek-label">ΕΛ</span>${descEl}</div>` : ''}
+        <div class="result-meta">
+          <div class="meta-item"><span class="meta-label">Category</span><span class="meta-val">${cat}</span></div>
+          <div class="meta-item"><span class="meta-label">Protocol</span><span class="meta-val">${r.proto === 'CID' ? 'Contact ID' : 'SIA DC-09'}</span></div>
+        </div>
+      </div>`;
+  }).join('<div style="height:1px;background:var(--border);"></div>');
+}
+
+const input = document.getElementById('codeInput');
+const clearBtn = document.getElementById('clearBtn');
+
+input.addEventListener('input', () => {
+  render(input.value);
+  clearBtn.classList.toggle('visible', input.value.length > 0);
+});
+input.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { input.value = ''; render(''); clearBtn.classList.remove('visible'); }
+});
+clearBtn.addEventListener('click', () => {
+  input.value = ''; render(''); clearBtn.classList.remove('visible'); input.focus();
+});
+document.querySelectorAll('[data-proto]').forEach(b => {
+  if (!b.classList.contains('proto-chip')) {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-proto]:not(.proto-chip):not(.cat-chip)').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      activeProto = b.dataset.proto;
+      render(input.value);
+    });
+  }
+});
+document.querySelectorAll('[data-lang]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-lang]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activeLang = b.dataset.lang;
+    render(input.value);
+  });
+});
+
+// ─── Mode switching ───────────────────────────────────────────────────────────
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`panel-${tab.dataset.mode}`).classList.add('active');
+    if (tab.dataset.mode === 'browse') renderBrowse();
+    else input.focus();
+  });
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+input.focus();
+
+// ─── Password Gate ────────────────────────────────────────────────────────────
+(function() {
+  const CORRECT = 'karman!@#';
+  const gate = document.getElementById('pw-gate');
+  const pwInput = document.getElementById('pw-input');
+  const pwBtn = document.getElementById('pw-btn');
+  const pwError = document.getElementById('pw-error');
+  const pwToggle = document.getElementById('pw-toggle');
+
+  function unlock() {
+    if (pwInput.value === CORRECT) {
+      gate.style.transition = 'opacity 0.4s ease';
+      gate.style.opacity = '0';
+      setTimeout(() => { gate.style.display = 'none'; input.focus(); }, 400);
+    } else {
+      pwInput.classList.remove('error');
+      void pwInput.offsetWidth; // reflow to restart animation
+      pwInput.classList.add('error');
+      pwError.classList.add('show');
+      pwInput.value = '';
+      setTimeout(() => { pwInput.classList.remove('error'); }, 400);
+    }
+  }
+
+  pwBtn.addEventListener('click', unlock);
+  pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+  pwInput.addEventListener('input', () => pwError.classList.remove('show'));
+  pwToggle.addEventListener('click', () => {
+    pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+  });
+  pwInput.focus();
+})();
+</script>
+</body>
+</html>
